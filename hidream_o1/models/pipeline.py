@@ -6,6 +6,8 @@ from PIL import Image
 import torchvision.transforms.v2 as transforms
 
 from diffusers import FlowMatchEulerDiscreteScheduler
+# FlowUniPCMultistepScheduler generates more details than FlowMatchEulerDiscreteScheduler
+from .fm_solvers_unipc import FlowUniPCMultistepScheduler  # noqa: E402
 
 from .flash_scheduler import FlashFlowMatchEulerDiscreteScheduler
 from .utils import resize_pilimage, calculate_dimensions, get_rope_index_fix_point, find_closest_resolution
@@ -81,7 +83,7 @@ def build_scheduler(num_inference_steps, timesteps_list, shift, device, schedule
         sched = FlashFlowMatchEulerDiscreteScheduler(
             num_train_timesteps=1000, shift=shift, use_dynamic_shifting=False)
     elif scheduler_name == "default":
-        sched = FlowMatchEulerDiscreteScheduler(use_dynamic_shifting=False, shift=shift)
+        sched = FlowUniPCMultistepScheduler(use_dynamic_shifting=False, shift=shift)
     else:
         raise ValueError(f"Unknown scheduler_name={scheduler_name!r}")
     sched.set_timesteps(num_inference_steps, device=device)
@@ -312,7 +314,7 @@ def generate_image(
     if torch.cuda.is_available(): torch.cuda.manual_seed_all(seed + 1)
 
     def forward_once(sample, z_in, t_pixeldit):
-        with torch.autocast(device.type, dtype=dtype):
+        with torch.autocast(device.type, dtype=dtype, cache_enabled=False):
             kwargs = {
                 "input_ids": sample['input_ids'],
                 "position_ids": sample['position_ids'],

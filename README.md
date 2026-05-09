@@ -3,7 +3,10 @@
 **HiDream O1 Image nodes for ComfyUI** — local HiDream O1 generation with text prompts, optional reference images, BF16/FP16/FP32/FP8 model loading, FlashAttention, SageAttention, preview updates, and ComfyUI DynamicVRAM/Aimdo integration.
 
 [![HiDream O1 Model](https://img.shields.io/badge/HuggingFace-HiDream--O1--Image-blue)](https://huggingface.co/HiDream-ai/HiDream-O1-Image)
+[![Demo](https://img.shields.io/badge/Demo-HiDream--O1--Image-green)](https://huggingface.co/spaces/HiDream-ai/HiDream-O1-Image)
 [![GitHub](https://img.shields.io/badge/GitHub-Saganaki22%2FHiDream__O1--ComfyUI-black)](https://github.com/Saganaki22/HiDream_O1-ComfyUI)
+
+[中文文档](README_ZH.md)
 
 ## Features
 
@@ -131,22 +134,16 @@ Do not set `config.json` to `float8_e4m3fn`. Transformers may try to use FP8 as 
 
 Use `fp8_e4m3fn_fast` to request ComfyUI's fast FP8 operation path where the current GPU, PyTorch, and ComfyUI build support it. Otherwise the model still stores large weights as FP8 and uses ComfyUI manual-cast style compute for safety.
 
-## BF16 to FP8 Conversion
+## Scheduler
 
-The converter should:
+The sampler automatically picks the scheduler based on model type:
 
-- Convert 2D and larger floating weight tensors to `torch.float8_e4m3fn`
-- Keep 1D floating tensors such as norms, biases, and frequencies in BF16
-- Keep non-floating tensors unchanged
-- Keep `config.json` dtype as `bfloat16`
+| Model type | Scheduler | Notes |
+|------------|-----------|-------|
+| Full (`auto`) | `FlowUniPCMultistepScheduler` | Higher-order solver, generates more detail |
+| Dev | `FlashFlowMatchEulerDiscreteScheduler` | Custom Euler with built-in noise scaling, tuned for fewer steps |
 
-Example:
-
-```bash
-python convert_bf16_to_fp8.py ^
-  --input "C:/path/to/HiDream-O1-Image-bf16/model.safetensors" ^
-  --output-dir "C:/path/to/HiDream-O1-Image-fp8"
-```
+When `model_type` is `auto`, the folder name is checked for `dev` — if not found, the full model path is used with UniPC.
 
 ## Attention Backends
 
@@ -157,28 +154,9 @@ python convert_bf16_to_fp8.py ^
 | `sage` | Requires the `sageattention` package |
 | `sdpa` | Uses PyTorch scaled dot-product attention |
 
-## DynamicVRAM and Unload
-
-The loader wraps HiDream O1 in ComfyUI's `CoreModelPatcher`. When DynamicVRAM/Aimdo is enabled, ComfyUI should replace that with the dynamic patcher and page castable modules through VBAR. The sampler's `force_offload` option calls ComfyUI unload/cleanup after generation.
-
-If a model still appears fully static in memory visualization, confirm ComfyUI started with DynamicVRAM enabled and that the model is loaded with a precision where weight dtype and compute dtype differ, such as FP8 storage with FP16/BF16 compute.
-
-## Troubleshooting
-
-### `couldn't find storage object Float8_e4m3fnStorage`
-
-Your model `config.json` probably says `float8_e4m3fn`. Change both root `dtype` and `text_config.dtype` back to `bfloat16`. FP8 is detected from the safetensors file, not config.
-
-### `NoneType` errors under DynamicVRAM/Aimdo
-
-DynamicVRAM can temporarily eject weights from modules and replace them with paged VBAR storage. Update this nodepack and restart ComfyUI so the model code uses archived Comfy dtype metadata instead of directly reading ejected weights.
-
-### Only grey blocks in MemoryVisualization
-
-Grey means unloaded pages. Orange/yellow page grids require Aimdo/VBAR to be active and the model to be using Comfy castable modules. FP8 mixed loading should show dynamic staging when ComfyUI DynamicVRAM is enabled.
-
 ## Links
 
+- Demo: [HiDream-O1-Image](https://huggingface.co/spaces/HiDream-ai/HiDream-O1-Image)
 - BF16 model: [drbaph/HiDream-O1-Image-BF16](https://huggingface.co/drbaph/HiDream-O1-Image-BF16)
 - FP16 model: [drbaph/HiDream-O1-Image-FP16](https://huggingface.co/drbaph/HiDream-O1-Image-FP16)
 - FP8 model: [drbaph/HiDream-O1-Image-FP8](https://huggingface.co/drbaph/HiDream-O1-Image-FP8)
