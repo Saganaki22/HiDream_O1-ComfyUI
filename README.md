@@ -8,6 +8,8 @@
 
 [中文文档](README_ZH.md)
 
+<img width="2496" height="1664" alt="ComfyUI_temp_mtcyk_00010_" src="https://github.com/user-attachments/assets/f3b4fa8e-e1a8-4b61-aafa-6457ea942136" />
+
 ## Features
 
 - HiDream O1 Image generation directly inside ComfyUI
@@ -19,6 +21,9 @@
 - FlashAttention, SageAttention, and PyTorch SDPA attention backends
 - Progress previews through ComfyUI's sampler progress bar
 - ComfyUI model management, unload, DynamicVRAM, and Aimdo/VBAR support
+
+
+<img width="1866" height="991" alt="image" src="https://github.com/user-attachments/assets/b3107b6e-4a7e-4d02-b397-1a2215d1d2f5" />
 
 ## Installation
 
