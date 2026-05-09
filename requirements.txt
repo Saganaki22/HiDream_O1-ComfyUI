@@ -1,0 +1,13 @@
+accelerate
+diffusers
+einops
+huggingface_hub
+numpy
+pillow
+scipy
+safetensors
+torch
+torchvision
+transformers>=4.57.1
+tqdm
+

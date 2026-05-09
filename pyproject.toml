@@ -1,0 +1,14 @@
+[project]
+name = "HiDream_O1-ComfyUI"
+description = "ComfyUI custom nodes for HiDream O1 Image generation with reference images, BF16/FP16/FP8 loading, FlashAttention, SageAttention, and DynamicVRAM support"
+version = "0.1.4"
+license = {file = "LICENSE"}
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/Saganaki22/HiDream_O1-ComfyUI"
+
+[tool.comfy]
+PublisherId = "saganaki22"
+DisplayName = "HiDream O1"
+Icon = "https://avatars.githubusercontent.com/u/84208527"

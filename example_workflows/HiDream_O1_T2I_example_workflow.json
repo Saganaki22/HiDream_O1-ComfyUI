@@ -1,0 +1,202 @@
+{
+  "id": "634e6abd-4962-4ed0-88a1-0f6778d4365b",
+  "revision": 0,
+  "last_node_id": 9,
+  "last_link_id": 10,
+  "nodes": [
+    {
+      "id": 8,
+      "type": "HiDreamO1Sampler",
+      "pos": [
+        969.7310253800176,
+        -782.0173024324388
+      ],
+      "size": [
+        370.7079491502693,
+        638
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "HIDREAM_O1_MODEL",
+          "link": 6
+        },
+        {
+          "name": "conditioning",
+          "type": "HIDREAM_O1_CONDITIONING",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            9
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "HiDreamO1Sampler"
+      },
+      "widgets_values": [
+        "auto",
+        2048,
+        2048,
+        0,
+        525251385261082,
+        "randomize",
+        5,
+        -1,
+        7.5,
+        7.5,
+        2.5,
+        4,
+        false,
+        false,
+        "0"
+      ]
+    },
+    {
+      "id": 9,
+      "type": "HiDreamO1Conditioning",
+      "pos": [
+        483.9500682568118,
+        -698.4846908942911
+      ],
+      "size": [
+        419.67643791788726,
+        667.5234601958471
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "conditioning",
+          "type": "HIDREAM_O1_CONDITIONING",
+          "links": [
+            8
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "HiDreamO1Conditioning"
+      },
+      "widgets_values": [
+        "A high-quality, professional anime-style masterpiece featuring a stunning fennec cat girl with a slim human body, wearing a stylish dark blazer over a white shirt, a long pleated skirt, and vibrant neon-accented sneakers. She has long, flowing blonde hair and oversized, detailed fennec cat ears that are soft and expressive. The character is standing in a breathtaking landscape, with a vast, golden desert floor stretching toward sharp, majestic mountain peaks under a deep, starry night sky filled with a glowing, vibrant Milky Way galaxy. The art style is crisp, clean, and polished, featuring soft-cell shading, vibrant colors, and impeccable line work consistent with top-tier anime digital art. The atmosphere is serene yet magical, with clear focus on the character. The text \"HiDream-O1-Image\" is written in a stylized, bold, glowing white and cyan 3D font at the top, which pops intensely against the dark cosmic sky, acting as a visual header. At the bottom, the text \"ComfyUI\" appears in a sharp, modern, metallic-gradient font that stands out clearly against the desert floor, providing a strong, aesthetic anchor. The lighting is cinematic, with soft ambient light from the stars reflecting off the character’s hair and clothing, creating a sense of depth and dimensionality. Every detail, from the textures of the mountains to the fine details of the character’s fennec features, is rendered with absolute precision. The image is balanced, visually striking, and designed to look like a high-end promotional illustration. This composition blends whimsical fantasy character design with sleek, bold typography, ensuring that the text elements are legible, eye-catching, and perfectly integrated into the high-fidelity anime world, resulting in a breathtaking digital masterpiece that captures both charm and artistic technical perfection in every pixel.",
+        "bad quality"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "HiDreamO1ModelLoader",
+      "pos": [
+        491.11639638904114,
+        -908.6716079285006
+      ],
+      "size": [
+        329.89276394683066,
+        139.96959474415962
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "HIDREAM_O1_MODEL",
+          "links": [
+            6
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "HiDreamO1ModelLoader"
+      },
+      "widgets_values": [
+        "diffusion_models/HiDream-O1-Image-bf16",
+        "auto",
+        "auto",
+        false
+      ]
+    },
+    {
+      "id": 5,
+      "type": "PreviewImage",
+      "pos": [
+        1411.965513772243,
+        -829.4023638193548
+      ],
+      "size": [
+        665.159733223611,
+        713.5768621612744
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 9
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.20.1",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    }
+  ],
+  "links": [
+    [
+      6,
+      2,
+      0,
+      8,
+      0,
+      "HIDREAM_O1_MODEL"
+    ],
+    [
+      8,
+      9,
+      0,
+      8,
+      1,
+      "HIDREAM_O1_CONDITIONING"
+    ],
+    [
+      9,
+      8,
+      0,
+      5,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.6588450000000111,
+      "offset": [
+        153.7397262432879,
+        1257.5502799431804
+      ]
+    },
+    "frontendVersion": "1.43.18",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}
