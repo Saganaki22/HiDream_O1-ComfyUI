@@ -24,7 +24,8 @@
 - ComfyUI model management, unload, DynamicVRAM, and Aimdo/VBAR support
 
 
-<img width="1866" height="991" alt="image" src="https://github.com/user-attachments/assets/b3107b6e-4a7e-4d02-b397-1a2215d1d2f5" />
+<img width="2010" height="899" alt="image" src="https://github.com/user-attachments/assets/116f408b-dcce-4e01-b8e9-93566f8a2cca" />
+
 
 ## Installation
 
