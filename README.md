@@ -8,7 +8,8 @@
 
 [中文文档](README_ZH.md)
 
-<img width="2496" height="1664" alt="ComfyUI_temp_mtcyk_00010_" src="https://github.com/user-attachments/assets/f3b4fa8e-e1a8-4b61-aafa-6457ea942136" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/adfcbb51-6e04-4daf-82cf-99b2052f32de" />
+
 
 ## Features
 
