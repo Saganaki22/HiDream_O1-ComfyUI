@@ -378,6 +378,73 @@ def save_temp_image(image: Image.Image, prefix: str = "hidream_o1", extension: s
     return {"filename": filename, "subfolder": "", "type": "temp"}
 
 
+def prune_stale_loaded_models() -> int:
+    """Remove already-unloaded Comfy entries that would crash cleanup_models_gc."""
+    loaded_models = getattr(model_management, "current_loaded_models", None)
+    if loaded_models is None:
+        return 0
+
+    removed = 0
+    for index in range(len(loaded_models) - 1, -1, -1):
+        loaded_model = loaded_models[index]
+        real_model = getattr(loaded_model, "real_model", None)
+        if real_model is not None and callable(real_model):
+            continue
+        loaded_models.pop(index)
+        removed += 1
+
+    if removed:
+        LOGGER.info("Removed %s stale Comfy loaded-model entries before HiDream O1 reload.", removed)
+    return removed
+
+
+def _loaded_model_matches_patcher(loaded_model, patcher: comfy.model_patcher.ModelPatcher) -> bool:
+    model = getattr(loaded_model, "model", None)
+    if model is patcher:
+        return True
+    if model is None:
+        return False
+    try:
+        if hasattr(model, "is_clone") and model.is_clone(patcher):
+            return True
+    except Exception:
+        pass
+    try:
+        if hasattr(patcher, "is_clone") and patcher.is_clone(model):
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def remove_loaded_model_entries_for_patcher(patcher: comfy.model_patcher.ModelPatcher) -> bool:
+    loaded_models = getattr(model_management, "current_loaded_models", None)
+    if loaded_models is None:
+        return False
+
+    removed = False
+    for index in range(len(loaded_models) - 1, -1, -1):
+        loaded_model = loaded_models[index]
+        if not _loaded_model_matches_patcher(loaded_model, patcher):
+            continue
+
+        real_model = getattr(loaded_model, "real_model", None)
+        finalizer = getattr(loaded_model, "model_finalizer", None)
+        try:
+            if callable(real_model) and finalizer is not None:
+                loaded_model.model_unload()
+            else:
+                model = getattr(loaded_model, "model", None)
+                if model is not None:
+                    model.detach()
+        except Exception as exc:
+            LOGGER.debug("Ignoring HiDream O1 unload cleanup error: %s", exc)
+        loaded_models.pop(index)
+        removed = True
+
+    return removed
+
+
 class HiDreamTorchWrapper(torch.nn.Module):
     def __init__(self, model: torch.nn.Module, compute_dtype: torch.dtype, weight_dtype: torch.dtype):
         super().__init__()
@@ -416,6 +483,7 @@ class HiDreamO1Handle:
     attention: str
 
     def load_for_inference(self, memory_required: int = 0) -> HiDreamTorchWrapper:
+        prune_stale_loaded_models()
         model_management.load_models_gpu([self.patcher], memory_required=memory_required)
         model = self.patcher.model
         model.hidream_dtype = self.dtype
@@ -491,18 +559,11 @@ class HiDreamO1Handle:
 
     def offload(self) -> None:
         try:
-            unloaded = False
-            loaded_models = getattr(model_management, "current_loaded_models", None)
-            if loaded_models is not None:
-                for index in range(len(loaded_models) - 1, -1, -1):
-                    loaded_model = loaded_models[index]
-                    if loaded_model.model is self.patcher:
-                        loaded_model.model_unload()
-                        loaded_models.pop(index)
-                        unloaded = True
+            unloaded = remove_loaded_model_entries_for_patcher(self.patcher)
             if not unloaded:
                 self.patcher.detach()
         finally:
+            prune_stale_loaded_models()
             gc.collect()
             model_management.soft_empty_cache()
 

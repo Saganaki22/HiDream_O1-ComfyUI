@@ -1,7 +1,7 @@
 [project]
 name = "HiDream_O1-ComfyUI"
 description = "ComfyUI custom nodes for HiDream O1 Image generation with reference images, BF16/FP16/FP8 loading, FlashAttention, SageAttention, and DynamicVRAM support"
-version = "0.1.6"
+version = "0.1.7"
 license = {file = "LICENSE"}
 dependencies = []
 

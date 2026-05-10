@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 LOGGER = logging.getLogger("HiDream_O1")
-__version__ = "0.1.6"
+__version__ = "0.1.7"
 LOGGER.propagate = False
 if not LOGGER.handlers:
     handler = logging.StreamHandler()
