@@ -6,8 +6,14 @@ import comfy.model_management as model_management
 import comfy.utils
 
 from .hidream_o1.comfy_runtime import (
+    NO_LORA_NAME,
+    apply_hidream_lora,
+    canonical_model_choice,
+    canonical_model_names,
     HiDreamO1Handle,
-    discover_models,
+    find_existing_canonical_model,
+    lora_names,
+    lora_path_for_name,
     load_hidream_model,
     maybe_download_model,
     pil_to_tensor,
@@ -33,24 +39,26 @@ PRECISION_CHOICES = [
     "fp16",
     "fp32",
     "fp8_e4m3fn",
-    "fp8_e4m3fn_fast",
     "fp8_e5m2",
 ]
 ATTENTION_CHOICES = ["auto", "flash", "sdpa", "sage"]
+_LOADED_MODEL_HANDLES: dict[str, tuple[tuple[str, str, str], HiDreamO1Handle]] = {}
 
 TOOLTIPS = {
     "model": "Loaded HiDream O1 model handle.",
     "conditioning": "Prompt conditioning from HiDream O1 Conditioning.",
-    "model_name": "Complete HiDream O1 model folder. Default: first discovered model folder.",
+    "model_name": "HiDream O1 model choice. Canonical Full/Dev BF16/FP16/FP8 entries are always shown; missing entries download only when download_if_missing is enabled.",
+    "lora_name": "HiDream O1 LoRA file from models/lora.",
+    "lora_strength": "Default: 1.0. LoRA model strength from -10.0 to 10.0; 0 disables the LoRA.",
     "precision": "Weight precision to load. Default: auto detects the safetensors dtype. FP16/FP8 weights use BF16 compute on BF16-capable GPUs to avoid NaNs.",
     "attention": "Attention backend. Default: auto uses FlashAttention when installed, otherwise SDPA. Use sage only if sageattention is installed.",
-    "download_if_missing": "Default: false. With an explicit precision, uses or downloads the matching drbaph BF16, FP16, or FP8 repo into models/diffusion_models. With auto, downloads BF16 only when no local model exists.",
+    "download_if_missing": "Default: false. If the selected canonical model is missing locally, enabling this downloads that selected model into models/diffusion_models.",
     "prompt": "Text instruction for HiDream O1. Default is a simple cinematic portrait prompt.",
     "negative_prompt": "Default: empty. Used as the unconditional CFG branch in full mode when guidance_scale is above 1. Dev mode ignores CFG.",
     "model_type": "Default: auto. Uses dev settings when the model folder name contains dev, otherwise full settings.",
     "width": "Requested output width. Default: 2048. HiDream snaps to its nearest supported patch-aligned resolution.",
     "height": "Requested output height. Default: 2048. HiDream snaps to its nearest supported patch-aligned resolution.",
-    "steps": "Default: 0 means auto: 50 steps for full, 28 steps for dev.",
+    "steps": "Default: 0 means auto: 50 steps for full. Dev always uses the upstream fixed 28-step schedule.",
     "guidance_scale": "Default: 5.0. Classifier-free guidance for full mode; dev mode ignores this and uses 0.",
     "shift": "Default: -1 means auto: 3.0 for full, 1.0 for dev.",
     "noise_scale_start": "Default: 7.5. Initial noise scale used by the scheduler.",
@@ -117,11 +125,22 @@ def _run_sampler(
         resolved_type = "full"
 
     if resolved_type == "dev":
-        num_steps = steps or 28
+        if steps not in (0, len(DEFAULT_TIMESTEPS)):
+            LOGGER.warning(
+                "HiDream O1 dev uses the upstream fixed %s-step schedule; ignoring steps=%s.",
+                len(DEFAULT_TIMESTEPS),
+                steps,
+            )
+        num_steps = len(DEFAULT_TIMESTEPS)
         resolved_guidance = 0.0
         resolved_shift = 1.0 if shift < 0 else shift
         timesteps_list = DEFAULT_TIMESTEPS
         scheduler_name = "flash"
+        if (noise_scale_start, noise_scale_end, noise_clip_std) != (7.5, 7.5, 2.5):
+            LOGGER.warning(
+                "HiDream O1 dev upstream defaults are noise_scale_start=7.5, "
+                "noise_scale_end=7.5, noise_clip_std=2.5. Different values can cause noisy or odd-color outputs."
+            )
     else:
         num_steps = steps or 50
         resolved_guidance = guidance_scale
@@ -155,6 +174,11 @@ def _run_sampler(
     try:
         inference_model = model.load_for_inference()
         attention_backend = model.resolve_attention_backend()
+        if resolved_type == "dev" and attention_backend != "flash":
+            LOGGER.warning(
+                "HiDream O1 upstream dev inference uses FlashAttention; current backend is %s.",
+                attention_backend,
+            )
         image = generate_image(
             model=inference_model,
             processor=model.processor,
@@ -191,16 +215,15 @@ def _run_sampler(
 class HiDreamO1ModelLoader:
     @classmethod
     def INPUT_TYPES(cls):
-        models = list(discover_models().keys())
-        if not models:
-            models = ["No HiDream O1 model folders found"]
+        models = canonical_model_names()
         return {
             "required": {
                 "model_name": (models, {"tooltip": TOOLTIPS["model_name"]}),
                 "precision": (PRECISION_CHOICES, {"default": "auto", "tooltip": TOOLTIPS["precision"]}),
                 "attention": (ATTENTION_CHOICES, {"default": "auto", "tooltip": TOOLTIPS["attention"]}),
                 "download_if_missing": ("BOOLEAN", {"default": False, "tooltip": TOOLTIPS["download_if_missing"]}),
-            }
+            },
+            "hidden": {"unique_id": "UNIQUE_ID"},
         }
 
     RETURN_TYPES = ("HIDREAM_O1_MODEL",)
@@ -208,23 +231,62 @@ class HiDreamO1ModelLoader:
     FUNCTION = "load_model"
     CATEGORY = "HiDream O1"
 
-    def load_model(self, model_name: str, precision: str, attention: str, download_if_missing: bool):
-        if download_if_missing and precision != "auto":
-            model_dir = maybe_download_model(precision=precision)
-            return (load_hidream_model(model_dir, precision=precision, attention=attention),)
+    @staticmethod
+    def _cache_key(unique_id) -> str:
+        return str(unique_id) if unique_id is not None else "global"
 
-        if model_name.startswith("No HiDream"):
-            if not download_if_missing:
-                raise FileNotFoundError(
-                    "No HiDream O1 model folder found. Place the full model folder in "
-                    "ComfyUI/models/diffusion_models, models/unet, models/diffusion_model, or models/checkpoints."
-                )
-            model_dir = maybe_download_model(precision=precision)
-        else:
-            from .hidream_o1.comfy_runtime import resolve_model_name
+    @classmethod
+    def _dispose_cached_handle(cls, key: str) -> None:
+        cached = _LOADED_MODEL_HANDLES.pop(key, None)
+        if cached is None:
+            return
+        _signature, handle = cached
+        LOGGER.info("Unloading previous HiDream O1 model for loader node %s.", key)
+        try:
+            handle.dispose()
+        except Exception as exc:
+            LOGGER.warning("HiDream O1 previous model cleanup hit an error: %s", exc)
 
-            model_dir = resolve_model_name(model_name)
-        return (load_hidream_model(model_dir, precision=precision, attention=attention),)
+    @classmethod
+    def _load_cached(cls, key: str, model_dir, precision: str, attention: str):
+        signature = (str(model_dir.resolve()), precision, attention)
+        cached = _LOADED_MODEL_HANDLES.get(key)
+        if cached is not None:
+            cached_signature, cached_handle = cached
+            if cached_signature == signature:
+                return cached_handle
+            cls._dispose_cached_handle(key)
+
+        handle = load_hidream_model(model_dir, precision=precision, attention=attention)
+        _LOADED_MODEL_HANDLES[key] = (signature, handle)
+        return handle
+
+    def load_model(
+        self,
+        model_name: str,
+        precision: str,
+        attention: str,
+        download_if_missing: bool,
+        unique_id=None,
+    ):
+        key = self._cache_key(unique_id)
+        canonical_choice = canonical_model_choice(model_name)
+        if canonical_choice is not None:
+            model_variant, model_precision = canonical_choice
+            model_dir = find_existing_canonical_model(model_name)
+            if model_dir is None:
+                if not download_if_missing:
+                    raise FileNotFoundError(
+                        f"{model_name} is not installed. Enable download_if_missing to download it, "
+                        "or place the complete model folder in ComfyUI/models/diffusion_models."
+                    )
+                model_dir = maybe_download_model(precision=model_precision, model_variant=model_variant)
+            return (self._load_cached(key, model_dir, model_precision, attention),)
+
+        from .hidream_o1.comfy_runtime import resolve_model_name
+
+        model_dir = resolve_model_name(model_name)
+        return (self._load_cached(key, model_dir, precision, attention),)
 
 
 class HiDreamO1Conditioning:
@@ -258,6 +320,56 @@ class HiDreamO1Conditioning:
 
     def condition(self, prompt: str, negative_prompt: str = ""):
         return ({"prompt": prompt, "negative_prompt": negative_prompt},)
+
+
+class HiDreamO1Lora:
+    def __init__(self):
+        self.loaded_lora = None
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "model": ("HIDREAM_O1_MODEL", {"tooltip": TOOLTIPS["model"]}),
+                "lora_name": (lora_names(), {"tooltip": TOOLTIPS["lora_name"]}),
+                "strength": (
+                    "FLOAT",
+                    {
+                        "default": 1.0,
+                        "min": -10.0,
+                        "max": 10.0,
+                        "step": 0.01,
+                        "tooltip": TOOLTIPS["lora_strength"],
+                    },
+                ),
+            }
+        }
+
+    RETURN_TYPES = ("HIDREAM_O1_MODEL",)
+    RETURN_NAMES = ("model",)
+    FUNCTION = "apply_lora"
+    CATEGORY = "HiDream O1"
+
+    def apply_lora(self, model: HiDreamO1Handle, lora_name: str, strength: float):
+        if lora_name == NO_LORA_NAME or strength == 0:
+            return (model,)
+
+        lora_path = lora_path_for_name(lora_name)
+        if lora_path is None:
+            return (model,)
+
+        lora = None
+        if self.loaded_lora is not None:
+            if self.loaded_lora[0] == lora_path:
+                lora = self.loaded_lora[1]
+            else:
+                self.loaded_lora = None
+
+        if lora is None:
+            lora = comfy.utils.load_torch_file(lora_path, safe_load=True)
+            self.loaded_lora = (lora_path, lora)
+
+        return (apply_hidream_lora(model, lora, strength, lora_name=lora_name),)
 
 
 def _sampler_required_inputs():
@@ -400,11 +512,13 @@ else:
 NODE_CLASS_MAPPINGS = {
     "HiDreamO1ModelLoader": HiDreamO1ModelLoader,
     "HiDreamO1Conditioning": HiDreamO1Conditioning,
+    "HiDreamO1Lora": HiDreamO1Lora,
     "HiDreamO1Sampler": HiDreamO1Sampler,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "HiDreamO1ModelLoader": "HiDream O1 Model Loader",
     "HiDreamO1Conditioning": "HiDream O1 Conditioning",
+    "HiDreamO1Lora": "HiDream O1 LoRA",
     "HiDreamO1Sampler": "HiDream O1 Sampler",
 }

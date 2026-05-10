@@ -19,6 +19,8 @@ from transformers import AutoProcessor
 
 import comfy.model_management as model_management
 import comfy.model_patcher
+import comfy.lora
+import comfy.lora_convert
 import comfy.ops
 import comfy.utils
 import folder_paths
@@ -27,6 +29,7 @@ from .models import qwen3_vl_transformers
 from .models.qwen3_vl_transformers import Qwen3VLForConditionalGeneration
 
 LOGGER = logging.getLogger("HiDream_O1")
+NO_LORA_NAME = "None"
 
 FLOAT8_DTYPE_NAMES = {
     getattr(torch, "float8_e4m3fn", None): "float8_e4m3fn",
@@ -51,9 +54,25 @@ MODEL_FOLDER_LABELS = (
 )
 
 DOWNLOAD_TARGETS = {
-    "bf16": ("drbaph/HiDream-O1-Image-BF16", "HiDream-O1-Image-bf16"),
-    "fp16": ("drbaph/HiDream-O1-Image-FP16", "HiDream-O1-Image-fp16"),
-    "fp8": ("drbaph/HiDream-O1-Image-FP8", "HiDream-O1-Image-fp8"),
+    "full": {
+        "bf16": ("drbaph/HiDream-O1-Image-BF16", "HiDream-O1-Image-bf16"),
+        "fp16": ("drbaph/HiDream-O1-Image-FP16", "HiDream-O1-Image-fp16"),
+        "fp8": ("drbaph/HiDream-O1-Image-FP8", "HiDream-O1-Image-fp8"),
+    },
+    "dev": {
+        "bf16": ("drbaph/HiDream-O1-Image-Dev-BF16", "HiDream-O1-Image-Dev-bf16"),
+        "fp16": ("drbaph/HiDream-O1-Image-Dev-FP16", "HiDream-O1-Image-Dev-fp16"),
+        "fp8": ("drbaph/HiDream-O1-Image-Dev-FP8", "HiDream-O1-Image-Dev-fp8"),
+    },
+}
+
+CANONICAL_MODEL_CHOICES = {
+    "HiDream-O1-Image-BF16": ("full", "bf16"),
+    "HiDream-O1-Image-FP16": ("full", "fp16"),
+    "HiDream-O1-Image-FP8": ("full", "fp8_e4m3fn"),
+    "HiDream-O1-Image-Dev-BF16": ("dev", "bf16"),
+    "HiDream-O1-Image-Dev-FP16": ("dev", "fp16"),
+    "HiDream-O1-Image-Dev-FP8": ("dev", "fp8_e4m3fn"),
 }
 
 
@@ -65,6 +84,16 @@ def ensure_model_folders() -> None:
             folder_paths.add_model_folder_path(f"hidream_o1_{folder}", str(path))
         except Exception:
             pass
+
+
+def ensure_lora_folders() -> None:
+    lora_path = Path(folder_paths.models_dir) / "lora"
+    lora_path.mkdir(parents=True, exist_ok=True)
+
+
+def lora_root() -> Path:
+    ensure_lora_folders()
+    return (Path(folder_paths.models_dir) / "lora").resolve()
 
 
 def model_roots() -> list[tuple[Path, str]]:
@@ -104,10 +133,71 @@ def discover_models() -> dict[str, Path]:
     return dict(sorted(out.items(), key=lambda item: item[0].lower()))
 
 
+def _casefold(value: str) -> str:
+    return value.casefold()
+
+
+def _target_name_for_choice(model_name: str) -> str | None:
+    choice = canonical_model_choice(model_name)
+    if choice is None:
+        return None
+    variant, precision = choice
+    precision_key = _download_key_from_precision(precision)
+    return DOWNLOAD_TARGETS[variant][precision_key][1]
+
+
+def canonical_model_choice(model_name: str) -> tuple[str, str] | None:
+    wanted = _casefold(model_name)
+    for display_name, choice in CANONICAL_MODEL_CHOICES.items():
+        if _casefold(display_name) == wanted:
+            return choice
+    return None
+
+
+def canonical_model_names() -> list[str]:
+    return list(CANONICAL_MODEL_CHOICES.keys())
+
+
+def lora_names() -> list[str]:
+    root = lora_root()
+    supported = {ext.lower() for ext in folder_paths.supported_pt_extensions}
+    names = sorted(
+        path.relative_to(root).as_posix()
+        for path in root.rglob("*")
+        if path.is_file() and path.suffix.lower() in supported
+    )
+    return names or [NO_LORA_NAME]
+
+
+def lora_path_for_name(lora_name: str) -> str | None:
+    if not lora_name or lora_name == NO_LORA_NAME:
+        return None
+    root = lora_root()
+    path = (root / lora_name).resolve()
+    if os.path.commonpath([str(root), str(path)]) != str(root) or not path.is_file():
+        raise FileNotFoundError(f"HiDream O1 LoRA not found in {root}: {lora_name}")
+    return str(path)
+
+
+def find_existing_canonical_model(model_name: str) -> Path | None:
+    target_name = _target_name_for_choice(model_name)
+    if target_name is None:
+        return None
+    expected_names = {_casefold(model_name), _casefold(target_name)}
+    for path in discover_models().values():
+        if _casefold(path.name) in expected_names:
+            return path
+    return None
+
+
 def resolve_model_name(model_name: str) -> Path:
     models = discover_models()
     if model_name in models:
         return models[model_name]
+    wanted = _casefold(model_name)
+    for display, path in models.items():
+        if _casefold(display) == wanted or _casefold(path.name) == wanted:
+            return path
     path = Path(model_name).expanduser()
     if path.exists() and is_hidream_model_dir(path):
         return path.resolve()
@@ -162,11 +252,14 @@ def _dtype_from_precision_name(precision: str) -> tuple[torch.dtype | None, bool
         return torch.float16, False
     if precision == "fp32":
         return torch.float32, False
-    if precision in {"fp8_e4m3fn", "fp8_e4m3fn_fast"}:
+    if precision == "fp8_e4m3fn_fast":
+        LOGGER.warning("fp8_e4m3fn_fast has been removed; using fp8_e4m3fn instead.")
+        precision = "fp8_e4m3fn"
+    if precision == "fp8_e4m3fn":
         dtype = getattr(torch, "float8_e4m3fn", None)
         if dtype is None:
             raise RuntimeError("This PyTorch build does not expose torch.float8_e4m3fn.")
-        return dtype, precision.endswith("_fast")
+        return dtype, False
     if precision == "fp8_e5m2":
         dtype = getattr(torch, "float8_e5m2", None)
         if dtype is None:
@@ -413,6 +506,28 @@ class HiDreamO1Handle:
             gc.collect()
             model_management.soft_empty_cache()
 
+    def dispose(self) -> None:
+        try:
+            self.offload()
+        finally:
+            try:
+                self.patcher.detach()
+            except Exception:
+                pass
+            self.processor = None
+            gc.collect()
+            model_management.soft_empty_cache()
+
+    def clone_with_patcher(self, patcher: comfy.model_patcher.ModelPatcher) -> "HiDreamO1Handle":
+        return HiDreamO1Handle(
+            patcher=patcher,
+            processor=self.processor,
+            model_dir=self.model_dir,
+            dtype=self.dtype,
+            weight_dtype=self.weight_dtype,
+            attention=self.attention,
+        )
+
 
 class _TorchNNProxy:
     def __init__(self, base_nn, operations):
@@ -447,6 +562,64 @@ def _convert_matrix_params_to_dtype(model: torch.nn.Module, target_dtype: torch.
         comfy.utils.set_attr_param(model, name, param.detach().to(dtype=target_dtype))
         converted += 1
     return converted
+
+
+def _lora_prefix_variants(module_name: str) -> set[str]:
+    variants = {module_name}
+    prefixes_to_strip = (
+        "model.",
+        "model.model.",
+        "base_model.model.",
+        "base_model.model.model.",
+        "transformer.",
+        "diffusion_model.",
+    )
+    for prefix in prefixes_to_strip:
+        if module_name.startswith(prefix):
+            variants.add(module_name[len(prefix):])
+
+    expanded = set(variants)
+    for name in variants:
+        expanded.add(f"base_model.model.{name}")
+        expanded.add(f"transformer.{name}")
+        expanded.add(f"diffusion_model.{name}")
+        expanded.add(f"lora_unet_{name.replace('.', '_')}")
+        expanded.add(f"lycoris_{name.replace('.', '_')}")
+    return expanded
+
+
+def hidream_lora_key_map(model: torch.nn.Module) -> dict[str, str]:
+    key_map: dict[str, str] = {}
+    for key in model.state_dict().keys():
+        if not key.endswith(".weight"):
+            continue
+        module_name = key[: -len(".weight")]
+        for lora_key in _lora_prefix_variants(module_name):
+            key_map.setdefault(lora_key, key)
+    return key_map
+
+
+def apply_hidream_lora(handle: HiDreamO1Handle, lora: dict[str, torch.Tensor], strength: float, lora_name: str = "") -> HiDreamO1Handle:
+    if strength == 0:
+        return handle
+
+    key_map = hidream_lora_key_map(handle.patcher.model)
+    converted_lora = comfy.lora_convert.convert_lora(lora)
+    loaded = comfy.lora.load_lora(converted_lora, key_map)
+
+    new_patcher = handle.patcher.clone()
+    patched_keys = set(new_patcher.add_patches(loaded, strength))
+    missed_keys = [key for key in loaded if key not in patched_keys]
+    if patched_keys:
+        LOGGER.info("Applied HiDream O1 LoRA %s to %s weights at strength %.3f.", lora_name or "<memory>", len(patched_keys), strength)
+    else:
+        raise RuntimeError(
+            f"HiDream O1 LoRA {lora_name or '<memory>'} did not match any model weights. "
+            "This usually means the LoRA was trained for a different HiDream architecture or uses unsupported key names."
+        )
+    if missed_keys:
+        LOGGER.warning("HiDream O1 LoRA %s had %s unmatched converted patches.", lora_name or "<memory>", len(missed_keys))
+    return handle.clone_with_patcher(new_patcher)
 
 
 def _load_single_safetensors_direct(model: torch.nn.Module, model_dir: Path) -> bool:
@@ -566,19 +739,28 @@ def _download_key_from_precision(precision: str) -> str:
     return "bf16"
 
 
-def maybe_download_model(precision: str = "auto") -> Path:
+def _download_variant_name(model_variant: str | None) -> str:
+    model_variant = (model_variant or "full").lower()
+    if model_variant == "dev":
+        return "dev"
+    return "full"
+
+
+def maybe_download_model(precision: str = "auto", model_variant: str = "full") -> Path:
     try:
         from huggingface_hub import snapshot_download
     except Exception as exc:
         raise RuntimeError("Install huggingface_hub to enable automatic model downloads.") from exc
 
-    repo_id, target_name = DOWNLOAD_TARGETS[_download_key_from_precision(precision)]
+    variant_key = _download_variant_name(model_variant)
+    precision_key = _download_key_from_precision(precision)
+    repo_id, target_name = DOWNLOAD_TARGETS[variant_key][precision_key]
     target = Path(folder_paths.models_dir) / "diffusion_models" / target_name
     if is_hidream_model_dir(target):
         LOGGER.info("Using existing HiDream O1 model folder: %s", target)
         return target
     target.mkdir(parents=True, exist_ok=True)
-    LOGGER.info("Downloading HiDream O1 %s model from %s to %s", _download_key_from_precision(precision).upper(), repo_id, target)
+    LOGGER.info("Downloading HiDream O1 %s %s model from %s to %s", variant_key.upper(), precision_key.upper(), repo_id, target)
     try:
         snapshot_download(repo_id, local_dir=str(target), local_dir_use_symlinks=False)
     except TypeError:
