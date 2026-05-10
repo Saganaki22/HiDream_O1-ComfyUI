@@ -27,14 +27,8 @@ def identity_decorator(obj: Callable | None = None, **_kwargs: Any):
     return decorate
 
 
-try:
-    from transformers.utils.generic import check_model_inputs as _check_model_inputs
-except Exception:
-    _check_model_inputs = identity_decorator
-
-
 # The generated upstream file has custom generation-only arguments that some
 # Transformers releases reject during docstring validation. Runtime behavior does
 # not depend on that decorator, so keep it inert across versions.
 auto_docstring = identity_decorator
-check_model_inputs = _check_model_inputs
+check_model_inputs = identity_decorator

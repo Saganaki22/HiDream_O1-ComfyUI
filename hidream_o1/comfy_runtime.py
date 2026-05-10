@@ -7,6 +7,7 @@ import logging
 import os
 import shutil
 import uuid
+from contextlib import nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -16,6 +17,10 @@ import torch
 from PIL import Image
 from safetensors import safe_open
 from transformers import AutoProcessor
+try:
+    from transformers.modeling_utils import no_init_weights
+except Exception:
+    no_init_weights = nullcontext
 
 import comfy.model_management as model_management
 import comfy.model_patcher
@@ -742,7 +747,8 @@ def load_hidream_model(model_dir: Path, precision: str = "auto", attention: str 
         loaded_direct = False
         if (model_dir / "model.safetensors").exists():
             config = Qwen3VLForConditionalGeneration.config_class.from_pretrained(str(model_dir))
-            model = Qwen3VLForConditionalGeneration(config)
+            with no_init_weights():
+                model = Qwen3VLForConditionalGeneration(config)
             loaded_direct = _load_single_safetensors_direct(model, model_dir)
         if not loaded_direct:
             model = Qwen3VLForConditionalGeneration.from_pretrained(str(model_dir), **kwargs)
