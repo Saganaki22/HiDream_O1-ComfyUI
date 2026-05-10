@@ -184,8 +184,8 @@ Dev follows the upstream recipe: fixed 28-step timetable, guidance `0.0`, shift 
 | Option | Description |
 |--------|-------------|
 | `auto` | Uses FlashAttention when available, otherwise SDPA |
-| `flash` | Requires FlashAttention |
-| `sage` | Requires the `sageattention` package |
+| `flash` | Requires FlashAttention [Optimal] |
+| `sage` | Requires the `sageattention` package [Not Optimal] |
 | `sdpa` | Uses PyTorch scaled dot-product attention |
 
 ## Links
