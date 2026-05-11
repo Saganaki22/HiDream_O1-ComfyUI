@@ -89,6 +89,8 @@ Local folder matching is case-insensitive, so `HiDream-O1-Image-Dev-FP8`, `hidre
 
 The original/full HiDream O1 model can show grid artifacts or other reference-image artifacts. In the upstream issue tracker, a HiDream developer recommends trying the Dev model because it should have fewer grid artifacts, and notes that reference-image generation is still being improved: [HiDream-ai/HiDream-O1-Image issue #1](https://github.com/HiDream-ai/HiDream-O1-Image/issues/1#issuecomment-4412738522).
 
+In general, the Full model is the better choice for realism and photographic detail. The Dev model is faster and often better for illustration, digital design, and cleaner grid/artifact behavior, but it can be more sensitive to scheduler and resolution choices.
+
 | Variant | Precision | Hugging Face repo | Target folder |
 |---------|-----------|-------------------|---------------|
 | Full | `auto`, `bf16`, `fp32` | [`drbaph/HiDream-O1-Image-BF16`](https://huggingface.co/drbaph/HiDream-O1-Image-BF16) | `HiDream-O1-Image-bf16` |
@@ -177,7 +179,7 @@ The sampler automatically picks the scheduler based on model type:
 
 When `model_type` is `auto`, the folder name is checked for `dev` — if not found, the full model path is used with UniPC.
 
-Dev follows the upstream recipe: fixed 28-step timetable, guidance `0.0`, shift `1.0`, and noise defaults `7.5 / 7.5 / 2.5`. If dev images look noisy or oddly colored, reset `noise_scale_start`, `noise_scale_end`, and `noise_clip_std` to those defaults and use the `flash` or `auto` attention backend.
+Dev follows the upstream recipe: fixed 28-step timetable, guidance `0.0`, shift `1.0`, and noise defaults `7.5 / 7.5 / 2.5`. If dev images look noisy, oddly colored, or washed out near the last few steps, reset `noise_scale_start`, `noise_scale_end`, and `noise_clip_std` to those defaults, use the `flash` or `auto` attention backend, and pin the output to one of the internal supported resolutions: `2048x2048`, `2304x1728`, `1728x2304`, `2560x1440`, `1440x2560`, `2496x1664`, `1664x2496`, `3104x1312`, `1312x3104`, `2304x1792`, or `1792x2304`. To avoid this Dev-mode sensitivity entirely, use the Full model.
 
 ## Attention Backends
 

@@ -82,6 +82,8 @@ model.safetensors
 
 原始 Full 版 HiDream O1 可能出现网格伪影或参考图生成伪影。上游 issue 中，HiDream 开发者建议尝试 Dev 模型，因为 Dev 应该有更少的网格伪影，同时说明参考图生成还会继续改进：[HiDream-ai/HiDream-O1-Image issue #1](https://github.com/HiDream-ai/HiDream-O1-Image/issues/1#issuecomment-4412738522)。
 
+一般来说，Full 模型更适合真实感、摄影感和细节表现。Dev 模型速度更快，通常更适合插画、数字设计，也更容易减少网格/伪影问题，但它对采样器和分辨率设置更敏感。
+
 | 版本 | 精度选择 | Hugging Face 仓库 | 目标文件夹 |
 |------|----------|-------------------|------------|
 | Full | `auto`、`bf16`、`fp32` | [drbaph/HiDream-O1-Image-BF16](https://huggingface.co/drbaph/HiDream-O1-Image-BF16) | `HiDream-O1-Image-bf16` |
@@ -170,7 +172,7 @@ LoRA 下拉框会读取 `ComfyUI/models/lora/`。
 
 当 `model_type=auto` 时，节点会检查模型文件夹名是否包含 `dev`。包含则使用 Dev 配方，否则使用 Full 配方。
 
-Dev 配方与上游保持一致：固定 28 步时间表、guidance `0.0`、shift `1.0`，噪声默认值 `7.5 / 7.5 / 2.5`。如果 Dev 结果出现噪点或颜色异常，请先把 `noise_scale_start`、`noise_scale_end`、`noise_clip_std` 恢复为这些默认值，并使用 `flash` 或 `auto` 注意力后端。
+Dev 配方与上游保持一致：固定 28 步时间表、guidance `0.0`、shift `1.0`，噪声默认值 `7.5 / 7.5 / 2.5`。如果 Dev 结果在最后几步附近出现噪点、颜色异常或发白/褪色，请先把 `noise_scale_start`、`noise_scale_end`、`noise_clip_std` 恢复为这些默认值，使用 `flash` 或 `auto` 注意力后端，并把输出固定到内部支持的分辨率之一：`2048x2048`、`2304x1728`、`1728x2304`、`2560x1440`、`1440x2560`、`2496x1664`、`1664x2496`、`3104x1312`、`1312x3104`、`2304x1792`、`1792x2304`。如果想完全避免 Dev 模式的这种敏感性，请使用 Full 模型。
 
 ## 注意力后端
 
