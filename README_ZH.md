@@ -123,7 +123,7 @@ model.safetensors
 HiDream O1 Model Loader -> HiDream O1 LoRA -> HiDream O1 Sampler
 ```
 
-LoRA 下拉框会读取 `ComfyUI/models/lora/`。
+LoRA 下拉框会读取 `ComfyUI/models/loras/`，包括符号链接文件夹中的受支持 LoRA 文件。
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|

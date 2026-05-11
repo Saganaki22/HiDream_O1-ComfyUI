@@ -92,13 +92,13 @@ def ensure_model_folders() -> None:
 
 
 def ensure_lora_folders() -> None:
-    lora_path = Path(folder_paths.models_dir) / "lora"
+    lora_path = Path(folder_paths.models_dir) / "loras"
     lora_path.mkdir(parents=True, exist_ok=True)
 
 
 def lora_root() -> Path:
     ensure_lora_folders()
-    return (Path(folder_paths.models_dir) / "lora").resolve()
+    return (Path(folder_paths.models_dir) / "loras").resolve()
 
 
 def model_roots() -> list[tuple[Path, str]]:
@@ -166,11 +166,7 @@ def canonical_model_names() -> list[str]:
 def lora_names() -> list[str]:
     root = lora_root()
     supported = {ext.lower() for ext in folder_paths.supported_pt_extensions}
-    names = sorted(
-        path.relative_to(root).as_posix()
-        for path in root.rglob("*")
-        if path.is_file() and path.suffix.lower() in supported
-    )
+    names = sorted({path.relative_to(root).as_posix() for path in _iter_lora_files(root, supported)})
     return names or [NO_LORA_NAME]
 
 
@@ -178,10 +174,33 @@ def lora_path_for_name(lora_name: str) -> str | None:
     if not lora_name or lora_name == NO_LORA_NAME:
         return None
     root = lora_root()
-    path = (root / lora_name).resolve()
-    if os.path.commonpath([str(root), str(path)]) != str(root) or not path.is_file():
+    rel_path = Path(lora_name)
+    if rel_path.is_absolute() or ".." in rel_path.parts:
+        raise FileNotFoundError(f"HiDream O1 LoRA not found in {root}: {lora_name}")
+    path = root / rel_path
+    root_abs = root.absolute()
+    path_abs = path.absolute()
+    if os.path.commonpath([str(root_abs), str(path_abs)]) != str(root_abs) or not path.is_file():
         raise FileNotFoundError(f"HiDream O1 LoRA not found in {root}: {lora_name}")
     return str(path)
+
+
+def _iter_lora_files(root: Path, supported: set[str]) -> Iterable[Path]:
+    seen_dirs: set[Path] = set()
+    for dirpath, dirnames, filenames in os.walk(root, followlinks=True):
+        try:
+            real_dir = Path(dirpath).resolve()
+        except OSError:
+            dirnames[:] = []
+            continue
+        if real_dir in seen_dirs:
+            dirnames[:] = []
+            continue
+        seen_dirs.add(real_dir)
+        for filename in filenames:
+            path = Path(dirpath) / filename
+            if path.suffix.lower() in supported and path.is_file():
+                yield path
 
 
 def find_existing_canonical_model(model_name: str) -> Path | None:

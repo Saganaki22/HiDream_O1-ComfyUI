@@ -48,7 +48,7 @@ TOOLTIPS = {
     "model": "Loaded HiDream O1 model handle.",
     "conditioning": "Prompt conditioning from HiDream O1 Conditioning.",
     "model_name": "HiDream O1 model choice. Canonical Full/Dev BF16/FP16/FP8 entries are always shown; missing entries download only when download_if_missing is enabled.",
-    "lora_name": "HiDream O1 LoRA file from models/lora.",
+    "lora_name": "HiDream O1 LoRA file from models/loras.",
     "lora_strength": "Default: 1.0. LoRA model strength from -10.0 to 10.0; 0 disables the LoRA.",
     "precision": "Weight precision to load. Default: auto detects the safetensors dtype. FP16/FP8 weights use BF16 compute on BF16-capable GPUs to avoid NaNs.",
     "attention": "Attention backend. Default: auto uses FlashAttention when installed, otherwise SDPA. Use sage only if sageattention is installed.",

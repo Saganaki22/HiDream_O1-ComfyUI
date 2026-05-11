@@ -130,7 +130,7 @@ Applies a LoRA between the model loader and sampler:
 HiDream O1 Model Loader -> HiDream O1 LoRA -> HiDream O1 Sampler
 ```
 
-The LoRA dropdown reads from `ComfyUI/models/lora/`.
+The LoRA dropdown reads from `ComfyUI/models/loras/`, including supported LoRA files inside symlinked folders.
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
