@@ -9,5 +9,5 @@ safetensors
 torch
 torchvision
 transformers>=4.57.1
+typing_extensions
 tqdm
-

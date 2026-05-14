@@ -16,11 +16,13 @@
 - HiDream O1 Image generation directly inside ComfyUI
 - Text-only and reference-image workflows
 - Dynamic `image_1` to `image_12` inputs on the sampler node
+- Optional Dev layout conditioning via JSON bbox input
 - `keep_image1_aspect` toggle for reference-driven output aspect ratio
 - BF16, FP16, FP32, FP8 E4M3FN, and FP8 E5M2 loader options
 - FP8 mixed-weight loading using ComfyUI manual-cast style compute
 - FlashAttention, SageAttention, and PyTorch SDPA attention backends
 - Progress previews through ComfyUI's sampler progress bar
+- AI Toolkit-aligned HiDream O1 LoRA training nodes
 - ComfyUI model management, unload, DynamicVRAM, and Aimdo/VBAR support
 
 
@@ -46,15 +48,22 @@ Restart ComfyUI after installing or updating.
 
 **Suggested `transformers` version: 4.57.1 – 5.3** (newer versions may break compatibility).
 
+HiDream's May 13, 2026 upstream update notes that PyTorch 2.9.x is not recommended because of a Qwen3-VL issue. This node logs a warning when it detects 2.9.x.
+
 ## Model Setup
 
 Download the complete model folder from one of the links below and place it inside `ComfyUI/models/diffusion_models/`:
 
 | Precision | VRAM | Download |
 |-----------|------|----------|
+| Official Full BF16 | ~18–20 GB | [HiDream-ai/HiDream-O1-Image](https://huggingface.co/HiDream-ai/HiDream-O1-Image) |
 | Full BF16 | ~18–20 GB | [drbaph/HiDream-O1-Image-BF16](https://huggingface.co/drbaph/HiDream-O1-Image-BF16) |
 | Full FP16 | ~18–20 GB | [drbaph/HiDream-O1-Image-FP16](https://huggingface.co/drbaph/HiDream-O1-Image-FP16) |
 | Full FP8 | ~10–11 GB | [drbaph/HiDream-O1-Image-FP8](https://huggingface.co/drbaph/HiDream-O1-Image-FP8) |
+| Official Dev 2604 BF16 | ~18–20 GB | [HiDream-ai/HiDream-O1-Image-Dev-2604](https://huggingface.co/HiDream-ai/HiDream-O1-Image-Dev-2604) |
+| Dev 2604 BF16 | ~18–20 GB | [drbaph/HiDream-O1-Image-Dev-2604-BF16](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-2604-BF16) |
+| Dev 2604 FP16 | ~18–20 GB | [drbaph/HiDream-O1-Image-Dev-2604-FP16](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-2604-FP16) |
+| Dev 2604 FP8 | ~10–11 GB | [drbaph/HiDream-O1-Image-Dev-2604-FP8](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-2604-FP8) |
 | Dev BF16 | ~18–20 GB | [drbaph/HiDream-O1-Image-Dev-BF16](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-BF16) |
 | Dev FP16 | ~18–20 GB | [drbaph/HiDream-O1-Image-Dev-FP16](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-FP16) |
 | Dev FP8 | ~10–11 GB | [drbaph/HiDream-O1-Image-Dev-FP8](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-FP8) |
@@ -81,7 +90,7 @@ model.safetensors
 
 The original sharded format also works if the folder contains `model.safetensors.index.json` and all shard files.
 
-The model loader always shows the six built-in model choices: Full/Dev BF16, FP16, and FP8. If the selected model already exists locally, it is used. If it is missing, enable `download_if_missing` and the selected model will be downloaded into `ComfyUI/models/diffusion_models`.
+The model loader always shows the built-in model choices: official Full, official Dev-2604, and converted Full/Dev BF16, FP16, and FP8. If the selected model already exists locally, it is used. If it is missing, enable `download_if_missing` and the selected model will be downloaded into `ComfyUI/models/diffusion_models`.
 
 Local folder matching is case-insensitive, so `HiDream-O1-Image-Dev-FP8`, `hidream-o1-image-dev-fp8`, and the default target folder casing all resolve to the same built-in choice. The loader dropdown only shows the built-in HiDream O1 model choices.
 
@@ -93,9 +102,14 @@ In general, the Full model is the better choice for realism and photographic det
 
 | Variant | Precision | Hugging Face repo | Target folder |
 |---------|-----------|-------------------|---------------|
+| Official Full | `auto`, `bf16`, `fp32` | [`HiDream-ai/HiDream-O1-Image`](https://huggingface.co/HiDream-ai/HiDream-O1-Image) | `HiDream-O1-Image` |
 | Full | `auto`, `bf16`, `fp32` | [`drbaph/HiDream-O1-Image-BF16`](https://huggingface.co/drbaph/HiDream-O1-Image-BF16) | `HiDream-O1-Image-bf16` |
 | Full | `fp16` | [`drbaph/HiDream-O1-Image-FP16`](https://huggingface.co/drbaph/HiDream-O1-Image-FP16) | `HiDream-O1-Image-fp16` |
 | Full | `fp8_e4m3fn`, `fp8_e5m2` | [`drbaph/HiDream-O1-Image-FP8`](https://huggingface.co/drbaph/HiDream-O1-Image-FP8) | `HiDream-O1-Image-fp8` |
+| Official Dev 2604 | `auto`, `bf16`, `fp32` | [`HiDream-ai/HiDream-O1-Image-Dev-2604`](https://huggingface.co/HiDream-ai/HiDream-O1-Image-Dev-2604) | `HiDream-O1-Image-Dev-2604` |
+| Dev 2604 | `auto`, `bf16`, `fp32` | [`drbaph/HiDream-O1-Image-Dev-2604-BF16`](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-2604-BF16) | `HiDream-O1-Image-Dev-2604-bf16` |
+| Dev 2604 | `fp16` | [`drbaph/HiDream-O1-Image-Dev-2604-FP16`](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-2604-FP16) | `HiDream-O1-Image-Dev-2604-fp16` |
+| Dev 2604 | `fp8_e4m3fn`, `fp8_e5m2` | [`drbaph/HiDream-O1-Image-Dev-2604-FP8`](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-2604-FP8) | `HiDream-O1-Image-Dev-2604-fp8` |
 | Dev | `auto`, `bf16`, `fp32` | [`drbaph/HiDream-O1-Image-Dev-BF16`](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-BF16) | `HiDream-O1-Image-Dev-bf16` |
 | Dev | `fp16` | [`drbaph/HiDream-O1-Image-Dev-FP16`](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-FP16) | `HiDream-O1-Image-Dev-fp16` |
 | Dev | `fp8_e4m3fn`, `fp8_e5m2` | [`drbaph/HiDream-O1-Image-Dev-FP8`](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-FP8) | `HiDream-O1-Image-Dev-fp8` |
@@ -137,6 +151,51 @@ The LoRA dropdown reads from `ComfyUI/models/loras/`, including supported LoRA f
 | `lora_name` | `None` when no LoRAs are found | LoRA file |
 | `strength` | `1.0` | Model strength from `-10.0` to `10.0`; `0` disables the LoRA |
 
+### HiDream O1 LoRA Training
+
+Experimental text-to-image LoRA training is available directly inside ComfyUI:
+
+```text
+HiDream O1 Dataset Maker -> HiDream O1 Train Config -> HiDream O1 LoRA Trainer
+```
+
+The trainer is for image/caption datasets only. Reference-image, edit, and subject-personalization training are not wired yet.
+
+Dataset folder layout:
+
+```text
+my_dataset/
+  image_001.png
+  image_001.txt
+  image_002.jpg
+  image_002.txt
+```
+
+Each `.txt` file should contain the caption for the image with the same basename. The Dataset Maker writes a `train.jsonl` manifest that the trainer consumes.
+
+Training notes:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `base_model_name` | `HiDream-O1-Image-BF16` | Full O1 weights; official `HiDream-O1-Image` is also available |
+| `resolution` | `1024` | Images are resized/cropped to a patch-aligned training size |
+| `target_preset` | `aitoolkit` | Trains linear-like layers except `lm_head`, `patch_embed`, and `visual`, matching AI Toolkit's O1 ignore list |
+| `loss_target` | `velocity` | Converts the model's x0 prediction into flow velocity before loss |
+| `noise_scale` | `8.0` | Scales training noise the same way as AI Toolkit's HiDream O1 flow scheduler |
+| `timestep_type` | `linear` | AI Toolkit's O1 default |
+| `max_loss` | `1.0` | Caps extreme loss spikes like AI Toolkit's O1 default |
+| `lora_rank` / `lora_alpha` | `32` / `32` | AI Toolkit-style linear LoRA defaults |
+| `weight_decay` | `0.0001` | AdamW weight decay default from AI Toolkit's job config |
+| `save_dtype` | `bf16` | LoRA checkpoint tensor dtype |
+| `max_steps` | `3000` | Total training steps |
+| `save_every_steps` | `250` | Checkpoint interval |
+
+Outputs are saved under `ComfyUI/models/loras/<output_name>/` as `.safetensors` files plus `hidream_o1_lora_config.json`. After training, select the saved `.safetensors` in the normal **HiDream O1 LoRA** node.
+
+The trainer follows AI Toolkit's May 2026 HiDream O1 recipe: it adds scaled noise with `noise_scale=8.0`, feeds the noisy image patches through the Qwen-VL model, converts the x0 prediction into a velocity-equivalent prediction, and trains against `noise * noise_scale - image`. The trainer runs in-process and blocks the ComfyUI queue while it is active. Use the Full model for training; Dev is intentionally not exposed in the trainer because it is distilled and may train unpredictably.
+
+For a deeper setup and tuning guide, see [HiDream O1 training notes](docs/HIDREAM_O1_TRAINING.md).
+
 ### HiDream O1 Sampler
 
 Runs the model and outputs a ComfyUI `IMAGE`.
@@ -153,6 +212,8 @@ Runs the model and outputs a ComfyUI `IMAGE`.
 | `noise_scale_start` | `7.5` | Initial noise scale |
 | `noise_scale_end` | `7.5` | Final noise scale |
 | `noise_clip_std` | `2.5` | Noise clipping standard deviation |
+| `dev_editing_scheduler` | `flow_match` | Dev edit mode scheduler when exactly one reference image is connected; `flash` remains available |
+| `layout_bboxes` | empty | Optional JSON string or JSON file path for layout conditioning with reference images |
 | `preview_every` | `4` | Sends a decoded preview every N steps; `0` disables previews |
 | `keep_image1_aspect` | `false` | Only applies when `image_1` is connected |
 | `force_offload` | `false` | Unloads the model immediately after generation |
@@ -175,11 +236,12 @@ The sampler automatically picks the scheduler based on model type:
 | Model type | Scheduler | Notes |
 |------------|-----------|-------|
 | Full (`auto`) | `FlowUniPCMultistepScheduler` | Higher-order solver, generates more detail |
-| Dev | `FlashFlowMatchEulerDiscreteScheduler` | Custom Euler with built-in noise scaling, tuned for fewer steps |
+| Dev text / subject | `FlashFlowMatchEulerDiscreteScheduler` | Custom Euler with built-in noise scaling, tuned for fewer steps |
+| Dev edit with one reference | `FlowMatchEulerDiscreteScheduler` by default | Matches the May 13, 2026 upstream Dev editing scheduler update; `flash` is still selectable |
 
 When `model_type` is `auto`, the folder name is checked for `dev` — if not found, the full model path is used with UniPC.
 
-Dev follows the upstream recipe: fixed 28-step timetable, guidance `0.0`, shift `1.0`, and noise defaults `7.5 / 7.5 / 2.5`. If dev images look noisy, oddly colored, or washed out near the last few steps, reset `noise_scale_start`, `noise_scale_end`, and `noise_clip_std` to those defaults, use the `flash` or `auto` attention backend, and pin the output to one of the internal supported resolutions: `2048x2048`, `2304x1728`, `1728x2304`, `2560x1440`, `1440x2560`, `2496x1664`, `1664x2496`, `3104x1312`, `1312x3104`, `2304x1792`, or `1792x2304`. To avoid this Dev-mode sensitivity entirely, use the Full model.
+Dev follows the upstream recipe: fixed 28-step timetable, guidance `0.0`, shift `1.0`, and noise defaults `7.5 / 7.5 / 2.5` when using `flash`. If dev images look noisy, oddly colored, or washed out near the last few steps, reset `noise_scale_start`, `noise_scale_end`, and `noise_clip_std` to those defaults, use the `flash` or `auto` attention backend, and pin the output to one of the internal supported resolutions: `2048x2048`, `2304x1728`, `1728x2304`, `2560x1440`, `1440x2560`, `2496x1664`, `1664x2496`, `3104x1312`, `1312x3104`, `2304x1792`, or `1792x2304`. Upstream recommends the Full model for editing tasks.
 
 ## Attention Backends
 
@@ -193,6 +255,11 @@ Dev follows the upstream recipe: fixed 28-step timetable, guidance `0.0`, shift 
 ## Links
 
 - Demo: [HiDream-O1-Image](https://huggingface.co/spaces/HiDream-ai/HiDream-O1-Image)
+- Official Full model: [HiDream-ai/HiDream-O1-Image](https://huggingface.co/HiDream-ai/HiDream-O1-Image)
+- Official Dev 2604 model: [HiDream-ai/HiDream-O1-Image-Dev-2604](https://huggingface.co/HiDream-ai/HiDream-O1-Image-Dev-2604)
+- Dev 2604 BF16 model: [drbaph/HiDream-O1-Image-Dev-2604-BF16](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-2604-BF16)
+- Dev 2604 FP16 model: [drbaph/HiDream-O1-Image-Dev-2604-FP16](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-2604-FP16)
+- Dev 2604 FP8 model: [drbaph/HiDream-O1-Image-Dev-2604-FP8](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-2604-FP8)
 - BF16 model: [drbaph/HiDream-O1-Image-BF16](https://huggingface.co/drbaph/HiDream-O1-Image-BF16)
 - FP16 model: [drbaph/HiDream-O1-Image-FP16](https://huggingface.co/drbaph/HiDream-O1-Image-FP16)
 - FP8 model: [drbaph/HiDream-O1-Image-FP8](https://huggingface.co/drbaph/HiDream-O1-Image-FP8)

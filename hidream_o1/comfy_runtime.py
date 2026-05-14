@@ -50,6 +50,7 @@ SAFETENSORS_DTYPE_MAP = {
     "F8_E5M2": getattr(torch, "float8_e5m2", None),
 }
 SAFETENSORS_DTYPE_MAP = {k: v for k, v in SAFETENSORS_DTYPE_MAP.items() if v is not None}
+_TORCH_29_WARNED = False
 
 MODEL_FOLDER_LABELS = (
     ("diffusion_models", "diffusion_models"),
@@ -59,6 +60,9 @@ MODEL_FOLDER_LABELS = (
 )
 
 DOWNLOAD_TARGETS = {
+    "full_official": {
+        "bf16": ("HiDream-ai/HiDream-O1-Image", "HiDream-O1-Image"),
+    },
     "full": {
         "bf16": ("drbaph/HiDream-O1-Image-BF16", "HiDream-O1-Image-bf16"),
         "fp16": ("drbaph/HiDream-O1-Image-FP16", "HiDream-O1-Image-fp16"),
@@ -69,12 +73,25 @@ DOWNLOAD_TARGETS = {
         "fp16": ("drbaph/HiDream-O1-Image-Dev-FP16", "HiDream-O1-Image-Dev-fp16"),
         "fp8": ("drbaph/HiDream-O1-Image-Dev-FP8", "HiDream-O1-Image-Dev-fp8"),
     },
+    "dev_2604_official": {
+        "bf16": ("HiDream-ai/HiDream-O1-Image-Dev-2604", "HiDream-O1-Image-Dev-2604"),
+    },
+    "dev_2604": {
+        "bf16": ("drbaph/HiDream-O1-Image-Dev-2604-BF16", "HiDream-O1-Image-Dev-2604-bf16"),
+        "fp16": ("drbaph/HiDream-O1-Image-Dev-2604-FP16", "HiDream-O1-Image-Dev-2604-fp16"),
+        "fp8": ("drbaph/HiDream-O1-Image-Dev-2604-FP8", "HiDream-O1-Image-Dev-2604-fp8"),
+    },
 }
 
 CANONICAL_MODEL_CHOICES = {
+    "HiDream-O1-Image": ("full_official", "bf16"),
     "HiDream-O1-Image-BF16": ("full", "bf16"),
     "HiDream-O1-Image-FP16": ("full", "fp16"),
     "HiDream-O1-Image-FP8": ("full", "fp8_e4m3fn"),
+    "HiDream-O1-Image-Dev-2604": ("dev_2604_official", "bf16"),
+    "HiDream-O1-Image-Dev-2604-BF16": ("dev_2604", "bf16"),
+    "HiDream-O1-Image-Dev-2604-FP16": ("dev_2604", "fp16"),
+    "HiDream-O1-Image-Dev-2604-FP8": ("dev_2604", "fp8_e4m3fn"),
     "HiDream-O1-Image-Dev-BF16": ("dev", "bf16"),
     "HiDream-O1-Image-Dev-FP16": ("dev", "fp16"),
     "HiDream-O1-Image-Dev-FP8": ("dev", "fp8_e4m3fn"),
@@ -89,6 +106,18 @@ def ensure_model_folders() -> None:
             folder_paths.add_model_folder_path(f"hidream_o1_{folder}", str(path))
         except Exception:
             pass
+
+
+def _warn_torch_29_once() -> None:
+    global _TORCH_29_WARNED
+    if _TORCH_29_WARNED:
+        return
+    version = str(getattr(torch, "__version__", ""))
+    if version.split("+", 1)[0].startswith("2.9."):
+        LOGGER.warning(
+            "HiDream upstream does not recommend PyTorch 2.9.x for O1 because of the Qwen3-VL issue linked in their May 13, 2026 update."
+        )
+    _TORCH_29_WARNED = True
 
 
 def ensure_lora_folders() -> None:
@@ -727,6 +756,7 @@ def _load_single_safetensors_direct(model: torch.nn.Module, model_dir: Path) -> 
 
 
 def load_hidream_model(model_dir: Path, precision: str = "auto", attention: str = "auto") -> HiDreamO1Handle:
+    _warn_torch_29_once()
     weight_dtype, fp8_optimizations = dtype_from_precision(precision, model_dir)
     file_dtype = _dtype_from_safetensors(model_dir)
     compute_dtype = compute_dtype_from_weight_dtype(weight_dtype)
@@ -827,6 +857,8 @@ def _download_key_from_precision(precision: str) -> str:
 
 def _download_variant_name(model_variant: str | None) -> str:
     model_variant = (model_variant or "full").lower()
+    if model_variant in DOWNLOAD_TARGETS:
+        return model_variant
     if model_variant == "dev":
         return "dev"
     return "full"

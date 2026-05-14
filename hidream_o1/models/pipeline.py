@@ -10,7 +10,14 @@ from diffusers import FlowMatchEulerDiscreteScheduler
 from .fm_solvers_unipc import FlowUniPCMultistepScheduler  # noqa: E402
 
 from .flash_scheduler import FlashFlowMatchEulerDiscreteScheduler
-from .utils import resize_pilimage, calculate_dimensions, get_rope_index_fix_point, find_closest_resolution
+from .utils import (
+    resize_pilimage,
+    calculate_dimensions,
+    create_layout_reference_images,
+    get_rope_index_fix_point,
+    find_closest_resolution,
+    load_layout_bboxes,
+)
 
 TIMESTEP_TOKEN_NUM = 1
 NOISE_SCALE = 8.0
@@ -82,6 +89,9 @@ def build_scheduler(num_inference_steps, timesteps_list, shift, device, schedule
     if scheduler_name == "flash":
         sched = FlashFlowMatchEulerDiscreteScheduler(
             num_train_timesteps=1000, shift=shift, use_dynamic_shifting=False)
+    elif scheduler_name == "flow_match":
+        sched = FlowMatchEulerDiscreteScheduler(
+            num_train_timesteps=1000, shift=shift)
     elif scheduler_name == "default":
         sched = FlowUniPCMultistepScheduler(use_dynamic_shifting=False, shift=shift)
     else:
@@ -121,6 +131,7 @@ def generate_image(
         noise_scale_end: float = NOISE_SCALE,
         noise_clip_std: float = 0.0,
         keep_original_aspect: bool = False,
+        layout_bboxes: str = None,
         callback=None,
         use_flash_attn: bool = True,
         use_sage_attn: bool = False,
@@ -187,12 +198,29 @@ def generate_image(
         else:
             ref_pils = [p.convert("RGB") if isinstance(p, Image.Image) else Image.open(p).convert("RGB") for p in ref_image_paths]
         K = len(ref_pils)
+        layout_data = None
+        if layout_bboxes is not None and len(layout_bboxes) > 0 and preresized_ref_pil is None:
+            try:
+                layout_data = load_layout_bboxes(layout_bboxes)
+                K += 1
+            except Exception as e:
+                print(f"Incorrect layout_bboxes: {layout_bboxes}, {e}")
 
         if K == 1: max_size = max(height, width)
         elif K == 2: max_size = max(height, width) * 48 // 64
         elif K <= 4: max_size = max(height, width) // 2
         elif K <= 8: max_size = max(height, width) * 24 // 64
         else: max_size = max(height, width) // 4
+
+        if layout_data is not None:
+            ref_pils = create_layout_reference_images(
+                ref_pils=ref_pils,
+                layout_bboxes=layout_data,
+                image_width=width,
+                image_height=height,
+                ref_max_size=max_size,
+                patch_size=PATCH_SIZE,
+            )
 
         ref_pils_resized, ref_images = [], []
         for pil in ref_pils:

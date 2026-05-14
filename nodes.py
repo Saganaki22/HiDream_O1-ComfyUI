@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import logging
+import os
 
 import comfy.model_management as model_management
 import comfy.utils
+import folder_paths
 
 from .hidream_o1.comfy_runtime import (
     NO_LORA_NAME,
@@ -21,6 +23,7 @@ from .hidream_o1.comfy_runtime import (
     tensor_to_pil,
 )
 from .hidream_o1.models.pipeline import DEFAULT_TIMESTEPS, generate_image
+from .hidream_o1.training import clean_output_name, create_image_caption_jsonl, run_hidream_o1_lora_training
 
 try:
     from comfy_api.latest import IO
@@ -43,11 +46,15 @@ PRECISION_CHOICES = [
 ]
 ATTENTION_CHOICES = ["auto", "flash", "sdpa", "sage"]
 _LOADED_MODEL_HANDLES: dict[str, tuple[tuple[str, str, str], HiDreamO1Handle]] = {}
+SAMPLER_INPUT_DEFAULTS = {
+    "dev_editing_scheduler": "flow_match",
+    "layout_bboxes": "",
+}
 
 TOOLTIPS = {
     "model": "Loaded HiDream O1 model handle.",
     "conditioning": "Prompt conditioning from HiDream O1 Conditioning.",
-    "model_name": "HiDream O1 model choice. Canonical Full/Dev BF16/FP16/FP8 entries are always shown; missing entries download only when download_if_missing is enabled.",
+    "model_name": "HiDream O1 model choice. Canonical official Full, Dev-2604, and converted BF16/FP16/FP8 entries are always shown; missing entries download only when download_if_missing is enabled.",
     "lora_name": "HiDream O1 LoRA file from models/loras.",
     "lora_strength": "Default: 1.0. LoRA model strength from -10.0 to 10.0; 0 disables the LoRA.",
     "precision": "Weight precision to load. Default: auto detects the safetensors dtype. FP16/FP8 weights use BF16 compute on BF16-capable GPUs to avoid NaNs.",
@@ -64,6 +71,8 @@ TOOLTIPS = {
     "noise_scale_start": "Default: 7.5. Initial noise scale used by the scheduler.",
     "noise_scale_end": "Default: 7.5. Final noise scale used by the scheduler.",
     "noise_clip_std": "Default: 2.5. Clips scheduler noise outliers; lower values clamp harder.",
+    "dev_editing_scheduler": "Default: flow_match. Upstream uses flow_match for Dev edit mode with exactly one reference image; flash remains available.",
+    "layout_bboxes": "Optional JSON string or JSON file path for upstream layout conditioning. Uses relative xxyy boxes like [[0.1, 0.45, 0.2, 0.8]].",
     "preview_every": "Default: 4. Sends a decoded preview every N steps; 0 disables previews.",
     "keep_image1_aspect": "Default: false. Only applies when image_1 is connected; output aspect follows image_1.",
     "force_offload": "Default: false. Immediately unloads the HiDream model after sampling.",
@@ -110,6 +119,8 @@ def _run_sampler(
     noise_scale_start: float,
     noise_scale_end: float,
     noise_clip_std: float,
+    dev_editing_scheduler: str,
+    layout_bboxes: str,
     preview_every: int,
     keep_image1_aspect: bool,
     force_offload: bool,
@@ -135,8 +146,8 @@ def _run_sampler(
         resolved_guidance = 0.0
         resolved_shift = 1.0 if shift < 0 else shift
         timesteps_list = DEFAULT_TIMESTEPS
-        scheduler_name = "flash"
-        if (noise_scale_start, noise_scale_end, noise_clip_std) != (7.5, 7.5, 2.5):
+        scheduler_name = "flow_match" if len(refs) == 1 and dev_editing_scheduler == "flow_match" else "flash"
+        if scheduler_name == "flash" and (noise_scale_start, noise_scale_end, noise_clip_std) != (7.5, 7.5, 2.5):
             LOGGER.warning(
                 "HiDream O1 dev upstream defaults are noise_scale_start=7.5, "
                 "noise_scale_end=7.5, noise_clip_std=2.5. Different values can cause noisy or odd-color outputs."
@@ -196,6 +207,7 @@ def _run_sampler(
             noise_scale_start=noise_scale_start,
             noise_scale_end=noise_scale_end,
             noise_clip_std=noise_clip_std,
+            layout_bboxes=layout_bboxes or None,
             keep_original_aspect=keep_image1_aspect,
             use_flash_attn=attention_backend == "flash",
             use_sage_attn=attention_backend == "sage",
@@ -218,7 +230,7 @@ class HiDreamO1ModelLoader:
         models = canonical_model_names()
         return {
             "required": {
-                "model_name": (models, {"tooltip": TOOLTIPS["model_name"]}),
+                "model_name": (models, {"default": "HiDream-O1-Image-BF16", "tooltip": TOOLTIPS["model_name"]}),
                 "precision": (PRECISION_CHOICES, {"default": "auto", "tooltip": TOOLTIPS["precision"]}),
                 "attention": (ATTENTION_CHOICES, {"default": "auto", "tooltip": TOOLTIPS["attention"]}),
                 "download_if_missing": ("BOOLEAN", {"default": False, "tooltip": TOOLTIPS["download_if_missing"]}),
@@ -372,6 +384,151 @@ class HiDreamO1Lora:
         return (apply_hidream_lora(model, lora, strength, lora_name=lora_name),)
 
 
+class HiDreamO1DatasetMaker:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "image_directory": (
+                    "STRING",
+                    {
+                        "default": "",
+                        "tooltip": "Folder containing image files and matching .txt captions.",
+                    },
+                ),
+                "output_filename": (
+                    "STRING",
+                    {
+                        "default": "train.jsonl",
+                        "tooltip": "Dataset manifest filename to write inside the image folder.",
+                    },
+                ),
+            },
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("dataset_path",)
+    FUNCTION = "create_dataset"
+    CATEGORY = "HiDream O1/training"
+
+    def create_dataset(self, image_directory: str, output_filename: str):
+        return (create_image_caption_jsonl(image_directory, output_filename),)
+
+
+class HiDreamO1TrainConfig:
+    TARGET_PRESETS = ["aitoolkit", "attention+mlp+pixel", "attention+pixel", "attention"]
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "learning_rate": ("FLOAT", {"default": 1e-4, "min": 1e-6, "max": 1e-2, "step": 1e-5}),
+                "lora_rank": ("INT", {"default": 32, "min": 4, "max": 256, "step": 4}),
+                "lora_alpha": ("FLOAT", {"default": 32.0, "min": 1.0, "max": 256.0, "step": 1.0}),
+                "lora_dropout": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 0.5, "step": 0.01}),
+                "weight_decay": ("FLOAT", {"default": 1e-4, "min": 0.0, "max": 0.2, "step": 0.0001}),
+                "warmup_steps": ("INT", {"default": 0, "min": 0, "max": 5000, "step": 1}),
+                "grad_accum_steps": ("INT", {"default": 1, "min": 1, "max": 64, "step": 1}),
+                "resolution": ("INT", {"default": 1024, "min": 512, "max": 2048, "step": 32}),
+                "caption_dropout": ("FLOAT", {"default": 0.05, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "timestep_type": (["linear", "sigmoid", "shift"], {"default": "linear"}),
+                "timestep_shift": ("FLOAT", {"default": 3.0, "min": 0.1, "max": 10.0, "step": 0.1}),
+                "min_sigma": ("FLOAT", {"default": 0.001, "min": 0.0001, "max": 0.95, "step": 0.001}),
+                "max_sigma": ("FLOAT", {"default": 0.999, "min": 0.05, "max": 0.9999, "step": 0.001}),
+                "noise_scale": ("FLOAT", {"default": 8.0, "min": 0.1, "max": 30.0, "step": 0.1}),
+                "loss_target": (["velocity", "x0"], {"default": "velocity"}),
+                "max_loss": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step": 0.1}),
+                "max_grad_norm": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 10.0, "step": 0.1}),
+                "target_preset": (cls.TARGET_PRESETS, {"default": "aitoolkit"}),
+                "gradient_checkpointing": ("BOOLEAN", {"default": True}),
+                "save_dtype": (["bf16", "fp16", "fp32"], {"default": "bf16"}),
+            },
+        }
+
+    RETURN_TYPES = ("HIDREAM_O1_TRAIN_CONFIG",)
+    RETURN_NAMES = ("train_config",)
+    FUNCTION = "configure"
+    CATEGORY = "HiDream O1/training"
+
+    def configure(self, **kwargs):
+        return (kwargs,)
+
+
+class HiDreamO1LoraTrainer:
+    TRAIN_MODEL_CHOICES = [
+        "HiDream-O1-Image-BF16",
+        "HiDream-O1-Image",
+        "HiDream-O1-Image-FP16",
+        "HiDream-O1-Image-FP8",
+    ]
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "base_model_name": (cls.TRAIN_MODEL_CHOICES, {"default": "HiDream-O1-Image-BF16"}),
+                "precision": (PRECISION_CHOICES, {"default": "auto", "tooltip": TOOLTIPS["precision"]}),
+                "attention": (ATTENTION_CHOICES, {"default": "auto", "tooltip": TOOLTIPS["attention"]}),
+                "download_if_missing": ("BOOLEAN", {"default": False, "tooltip": TOOLTIPS["download_if_missing"]}),
+                "train_config": ("HIDREAM_O1_TRAIN_CONFIG",),
+                "dataset_path": (
+                    "STRING",
+                    {
+                        "default": "",
+                        "tooltip": "JSONL manifest from HiDream O1 Dataset Maker.",
+                    },
+                ),
+                "output_name": (
+                    "STRING",
+                    {
+                        "default": "hidream_o1_lora",
+                        "tooltip": "Subfolder name in ComfyUI/models/loras.",
+                    },
+                ),
+                "max_steps": ("INT", {"default": 3000, "min": 1, "max": 100000, "step": 1}),
+                "save_every_steps": ("INT", {"default": 250, "min": 1, "max": 10000, "step": 1}),
+                "num_workers": ("INT", {"default": 0, "min": 0, "max": 8, "step": 1}),
+            },
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("lora_output_dir",)
+    FUNCTION = "train"
+    CATEGORY = "HiDream O1/training"
+
+    def train(
+        self,
+        base_model_name: str,
+        precision: str,
+        attention: str,
+        download_if_missing: bool,
+        train_config,
+        dataset_path: str,
+        output_name: str,
+        max_steps: int,
+        save_every_steps: int,
+        num_workers: int,
+    ):
+        lora_root = folder_paths.get_folder_paths("loras")[0]
+        output_name = clean_output_name(output_name)
+        output_dir = os.path.join(lora_root, output_name)
+        return (
+            run_hidream_o1_lora_training(
+                base_model_name=base_model_name,
+                precision=precision,
+                attention=attention,
+                train_config=train_config,
+                dataset_path=dataset_path,
+                output_dir=output_dir,
+                output_name=output_name,
+                max_steps=max_steps,
+                save_every_steps=save_every_steps,
+                num_workers=num_workers,
+                download_if_missing=download_if_missing,
+            ),
+        )
+
+
 def _sampler_required_inputs():
     return {
         "model": ("HIDREAM_O1_MODEL", {"tooltip": TOOLTIPS["model"]}),
@@ -386,6 +543,8 @@ def _sampler_required_inputs():
         "noise_scale_start": ("FLOAT", {"default": 7.5, "min": 0.0, "max": 30.0, "step": 0.1, "tooltip": TOOLTIPS["noise_scale_start"]}),
         "noise_scale_end": ("FLOAT", {"default": 7.5, "min": 0.0, "max": 30.0, "step": 0.1, "tooltip": TOOLTIPS["noise_scale_end"]}),
         "noise_clip_std": ("FLOAT", {"default": 2.5, "min": 0.0, "max": 20.0, "step": 0.1, "tooltip": TOOLTIPS["noise_clip_std"]}),
+        "dev_editing_scheduler": (["flow_match", "flash"], {"default": "flow_match", "tooltip": TOOLTIPS["dev_editing_scheduler"]}),
+        "layout_bboxes": ("STRING", {"default": "", "multiline": True, "tooltip": TOOLTIPS["layout_bboxes"]}),
         "preview_every": ("INT", {"default": 4, "min": 0, "max": 100, "tooltip": TOOLTIPS["preview_every"]}),
         "keep_image1_aspect": ("BOOLEAN", {"default": False, "tooltip": TOOLTIPS["keep_image1_aspect"]}),
         "force_offload": ("BOOLEAN", {"default": False, "tooltip": TOOLTIPS["force_offload"]}),
@@ -430,6 +589,8 @@ if _V3:
                     IO.Float.Input("noise_scale_start", default=7.5, min=0.0, max=30.0, step=0.1, tooltip=TOOLTIPS["noise_scale_start"]),
                     IO.Float.Input("noise_scale_end", default=7.5, min=0.0, max=30.0, step=0.1, tooltip=TOOLTIPS["noise_scale_end"]),
                     IO.Float.Input("noise_clip_std", default=2.5, min=0.0, max=20.0, step=0.1, tooltip=TOOLTIPS["noise_clip_std"]),
+                    IO.Combo.Input("dev_editing_scheduler", options=["flow_match", "flash"], default="flow_match", tooltip=TOOLTIPS["dev_editing_scheduler"]),
+                    IO.String.Input("layout_bboxes", default="", multiline=True, tooltip=TOOLTIPS["layout_bboxes"]),
                     IO.Int.Input("preview_every", default=4, min=0, max=100, tooltip=TOOLTIPS["preview_every"]),
                     IO.Boolean.Input("keep_image1_aspect", default=False, tooltip=TOOLTIPS["keep_image1_aspect"]),
                     IO.Boolean.Input("force_offload", default=False, tooltip=TOOLTIPS["force_offload"]),
@@ -459,6 +620,8 @@ if _V3:
             noise_scale_start: float,
             noise_scale_end: float,
             noise_clip_std: float,
+            dev_editing_scheduler: str,
+            layout_bboxes: str,
             preview_every: int,
             keep_image1_aspect: bool,
             force_offload: bool,
@@ -477,6 +640,8 @@ if _V3:
                 noise_scale_start=noise_scale_start,
                 noise_scale_end=noise_scale_end,
                 noise_clip_std=noise_clip_std,
+                dev_editing_scheduler=dev_editing_scheduler,
+                layout_bboxes=layout_bboxes,
                 preview_every=preview_every,
                 keep_image1_aspect=keep_image1_aspect,
                 force_offload=force_offload,
@@ -505,7 +670,10 @@ else:
 
         def generate(self, num_images: int, unique_id=None, **kwargs):
             refs = _collect_ref_images(kwargs, num_images)
-            sampler_kwargs = {key: kwargs[key] for key in _sampler_required_inputs()}
+            sampler_kwargs = {
+                key: kwargs[key] if key in kwargs else SAMPLER_INPUT_DEFAULTS[key]
+                for key in _sampler_required_inputs()
+            }
             return _run_sampler(**sampler_kwargs, refs=refs, unique_id=unique_id)
 
 
@@ -513,6 +681,9 @@ NODE_CLASS_MAPPINGS = {
     "HiDreamO1ModelLoader": HiDreamO1ModelLoader,
     "HiDreamO1Conditioning": HiDreamO1Conditioning,
     "HiDreamO1Lora": HiDreamO1Lora,
+    "HiDreamO1DatasetMaker": HiDreamO1DatasetMaker,
+    "HiDreamO1TrainConfig": HiDreamO1TrainConfig,
+    "HiDreamO1LoraTrainer": HiDreamO1LoraTrainer,
     "HiDreamO1Sampler": HiDreamO1Sampler,
 }
 
@@ -520,5 +691,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "HiDreamO1ModelLoader": "HiDream O1 Model Loader",
     "HiDreamO1Conditioning": "HiDream O1 Conditioning",
     "HiDreamO1Lora": "HiDream O1 LoRA",
+    "HiDreamO1DatasetMaker": "HiDream O1 Dataset Maker",
+    "HiDreamO1TrainConfig": "HiDream O1 Train Config",
+    "HiDreamO1LoraTrainer": "HiDream O1 LoRA Trainer",
     "HiDreamO1Sampler": "HiDream O1 Sampler",
 }
