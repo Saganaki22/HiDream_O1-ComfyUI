@@ -10,6 +10,7 @@ from diffusers import FlowMatchEulerDiscreteScheduler
 from .fm_solvers_unipc import FlowUniPCMultistepScheduler  # noqa: E402
 
 from .flash_scheduler import FlashFlowMatchEulerDiscreteScheduler
+from .seam_smoothing import apply_seam_smoothing
 from .utils import (
     resize_pilimage,
     calculate_dimensions,
@@ -132,6 +133,13 @@ def generate_image(
         noise_clip_std: float = 0.0,
         keep_original_aspect: bool = False,
         layout_bboxes: str = None,
+        seam_smooth_steps: int = 0,
+        seam_smooth_strength: float = 0.5,
+        seam_smooth_schedule: str = "constant",
+        seam_smooth_shift_mode: str = "rotate",
+        seam_smooth_adaptive_threshold: float = 0.0,
+        seam_smooth_multiscale: bool = False,
+        seam_smooth_cfg_aware: bool = False,
         callback=None,
         use_flash_attn: bool = True,
         use_sage_attn: bool = False,
@@ -374,6 +382,8 @@ def generate_image(
         arr_p = np.round(np.clip(img_t[0].numpy().transpose(1, 2, 0) * 255, 0, 255)).astype(np.uint8)
         return Image.fromarray(arr_p).convert("RGB")
 
+    seam_smooth_steps = max(0, min(int(seam_smooth_steps or 0), len(sched.timesteps)))
+
     for step_idx, step_t in enumerate(tqdm.tqdm(sched.timesteps, desc="Generating")):
         t_pixeldit = 1.0 - step_t.float() / 1000.0
         sigma = (step_t.float() / 1000.0).to(dtype=torch.float32).clamp_min(T_EPS)
@@ -411,6 +421,29 @@ def generate_image(
             z = sched.step(model_output.float(), step_t.to(dtype=torch.float32), z.float(), s_noise=noise_scale_schedule[step_idx], noise_clip_std=noise_clip_std, return_dict=False)[0].to(dtype)
         else:
             z = sched.step(model_output.float(), step_t.to(dtype=torch.float32), z.float(), return_dict=False)[0].to(dtype)
+
+        if seam_smooth_steps > 0 and step_idx >= len(sched.timesteps) - seam_smooth_steps:
+            smooth_idx = step_idx - (len(sched.timesteps) - seam_smooth_steps)
+            z, _smooth_info = apply_seam_smoothing(
+                z=z,
+                samples=samples,
+                ref_patches=ref_patches,
+                t_pixeldit=t_pixeldit,
+                sigma=sigma,
+                dtype=dtype,
+                h_patches=h_patches,
+                w_patches=w_patches,
+                smoothing_step_idx=smooth_idx,
+                total_smoothing_steps=seam_smooth_steps,
+                base_strength=float(seam_smooth_strength),
+                schedule=seam_smooth_schedule,
+                shift_mode=seam_smooth_shift_mode,
+                forward_once=forward_once,
+                guidance_scale=guidance_scale,
+                multiscale=bool(seam_smooth_multiscale),
+                cfg_aware=bool(seam_smooth_cfg_aware),
+                adaptive_threshold=float(seam_smooth_adaptive_threshold),
+            )
 
         if callback is not None:
             try:

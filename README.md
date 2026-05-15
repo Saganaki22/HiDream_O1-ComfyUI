@@ -2,7 +2,6 @@
 
 **HiDream O1 Image nodes for ComfyUI** — local HiDream O1 generation with text prompts, optional reference images, BF16/FP16/FP32/FP8 model loading, FlashAttention, SageAttention, preview updates, and ComfyUI DynamicVRAM/Aimdo integration.
 
-[![HiDream O1 Model](https://img.shields.io/badge/HuggingFace-HiDream--O1--Image-blue)](https://huggingface.co/HiDream-ai/HiDream-O1-Image)
 [![Demo](https://img.shields.io/badge/Demo-HiDream--O1--Image-green)](https://huggingface.co/spaces/HiDream-ai/HiDream-O1-Image)
 [![GitHub](https://img.shields.io/badge/GitHub-Saganaki22%2FHiDream__O1--ComfyUI-black)](https://github.com/Saganaki22/HiDream_O1-ComfyUI)
 
@@ -22,6 +21,7 @@
 - FP8 mixed-weight loading using ComfyUI manual-cast style compute
 - FlashAttention, SageAttention, and PyTorch SDPA attention backends
 - Progress previews through ComfyUI's sampler progress bar
+- Dev/Dev-2604 patch-grid smoothing node for reducing visible tile seams
 - AI Toolkit-aligned HiDream O1 LoRA training nodes
 - ComfyUI model management, unload, DynamicVRAM, and Aimdo/VBAR support
 
@@ -56,11 +56,9 @@ Download the complete model folder from one of the links below and place it insi
 
 | Precision | VRAM | Download |
 |-----------|------|----------|
-| Official Full BF16 | ~18–20 GB | [HiDream-ai/HiDream-O1-Image](https://huggingface.co/HiDream-ai/HiDream-O1-Image) |
 | Full BF16 | ~18–20 GB | [drbaph/HiDream-O1-Image-BF16](https://huggingface.co/drbaph/HiDream-O1-Image-BF16) |
 | Full FP16 | ~18–20 GB | [drbaph/HiDream-O1-Image-FP16](https://huggingface.co/drbaph/HiDream-O1-Image-FP16) |
 | Full FP8 | ~10–11 GB | [drbaph/HiDream-O1-Image-FP8](https://huggingface.co/drbaph/HiDream-O1-Image-FP8) |
-| Official Dev 2604 BF16 | ~18–20 GB | [HiDream-ai/HiDream-O1-Image-Dev-2604](https://huggingface.co/HiDream-ai/HiDream-O1-Image-Dev-2604) |
 | Dev 2604 BF16 | ~18–20 GB | [drbaph/HiDream-O1-Image-Dev-2604-BF16](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-2604-BF16) |
 | Dev 2604 FP16 | ~18–20 GB | [drbaph/HiDream-O1-Image-Dev-2604-FP16](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-2604-FP16) |
 | Dev 2604 FP8 | ~10–11 GB | [drbaph/HiDream-O1-Image-Dev-2604-FP8](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-2604-FP8) |
@@ -90,7 +88,7 @@ model.safetensors
 
 The original sharded format also works if the folder contains `model.safetensors.index.json` and all shard files.
 
-The model loader always shows the built-in model choices: official Full, official Dev-2604, and converted Full/Dev BF16, FP16, and FP8. If the selected model already exists locally, it is used. If it is missing, enable `download_if_missing` and the selected model will be downloaded into `ComfyUI/models/diffusion_models`.
+The model loader always shows the built-in converted model choices: Full/Dev BF16, FP16, FP8, plus Dev-2604 BF16, FP16, and FP8. If the selected model already exists locally, it is used. If it is missing, enable `download_if_missing` and the selected model will be downloaded into `ComfyUI/models/diffusion_models`.
 
 Local folder matching is case-insensitive, so `HiDream-O1-Image-Dev-FP8`, `hidream-o1-image-dev-fp8`, and the default target folder casing all resolve to the same built-in choice. The loader dropdown only shows the built-in HiDream O1 model choices.
 
@@ -102,11 +100,9 @@ In general, the Full model is the better choice for realism and photographic det
 
 | Variant | Precision | Hugging Face repo | Target folder |
 |---------|-----------|-------------------|---------------|
-| Official Full | `auto`, `bf16`, `fp32` | [`HiDream-ai/HiDream-O1-Image`](https://huggingface.co/HiDream-ai/HiDream-O1-Image) | `HiDream-O1-Image` |
 | Full | `auto`, `bf16`, `fp32` | [`drbaph/HiDream-O1-Image-BF16`](https://huggingface.co/drbaph/HiDream-O1-Image-BF16) | `HiDream-O1-Image-bf16` |
 | Full | `fp16` | [`drbaph/HiDream-O1-Image-FP16`](https://huggingface.co/drbaph/HiDream-O1-Image-FP16) | `HiDream-O1-Image-fp16` |
 | Full | `fp8_e4m3fn`, `fp8_e5m2` | [`drbaph/HiDream-O1-Image-FP8`](https://huggingface.co/drbaph/HiDream-O1-Image-FP8) | `HiDream-O1-Image-fp8` |
-| Official Dev 2604 | `auto`, `bf16`, `fp32` | [`HiDream-ai/HiDream-O1-Image-Dev-2604`](https://huggingface.co/HiDream-ai/HiDream-O1-Image-Dev-2604) | `HiDream-O1-Image-Dev-2604` |
 | Dev 2604 | `auto`, `bf16`, `fp32` | [`drbaph/HiDream-O1-Image-Dev-2604-BF16`](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-2604-BF16) | `HiDream-O1-Image-Dev-2604-bf16` |
 | Dev 2604 | `fp16` | [`drbaph/HiDream-O1-Image-Dev-2604-FP16`](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-2604-FP16) | `HiDream-O1-Image-Dev-2604-fp16` |
 | Dev 2604 | `fp8_e4m3fn`, `fp8_e5m2` | [`drbaph/HiDream-O1-Image-Dev-2604-FP8`](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-2604-FP8) | `HiDream-O1-Image-Dev-2604-fp8` |
@@ -151,6 +147,27 @@ The LoRA dropdown reads from `ComfyUI/models/loras/`, including supported LoRA f
 | `lora_name` | `None` when no LoRAs are found | LoRA file |
 | `strength` | `1.0` | Model strength from `-10.0` to `10.0`; `0` disables the LoRA |
 
+### HiDream O1 Dev Smoothing
+
+Applies patch-grid smoothing between the model loader or LoRA node and the sampler:
+
+```text
+HiDream O1 Model Loader -> HiDream O1 Dev Smoothing -> HiDream O1 Sampler
+HiDream O1 Model Loader -> HiDream O1 LoRA -> HiDream O1 Dev Smoothing -> HiDream O1 Sampler
+```
+
+This node is gated to Dev and Dev-2604 model folders. It runs extra shifted patch predictions during the last denoise steps and blends them back into the latent patch grid to reduce visible seams.
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `steps` | `4` | Final denoise steps to smooth; `0` disables smoothing |
+| `strength` | `0.5` | Blend strength for shifted patch prediction |
+| `schedule` | `constant` | Strength schedule over smoothing steps |
+| `shift_mode` | `rotate` | Patch-grid shift pattern |
+| `adaptive_threshold` | `0.0` | Skip smoothing when estimated seam intensity is below this value; `0` disables skipping |
+| `multiscale` | `false` | Adds a smaller patch-grid offset |
+| `cfg_aware` | `false` | Also smooths the unconditional branch when CFG is active; costs extra forwards |
+
 ### HiDream O1 LoRA Training
 
 Experimental text-to-image LoRA training is available directly inside ComfyUI:
@@ -177,7 +194,7 @@ Training notes:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `base_model_name` | `HiDream-O1-Image-BF16` | Full O1 weights; official `HiDream-O1-Image` is also available |
+| `base_model_name` | `HiDream-O1-Image-BF16` | Full O1 BF16 weights |
 | `resolution` | `1024` | Images are resized/cropped to a patch-aligned training size |
 | `target_preset` | `aitoolkit` | Trains linear-like layers except `lm_head`, `patch_embed`, and `visual`, matching AI Toolkit's O1 ignore list |
 | `loss_target` | `velocity` | Converts the model's x0 prediction into flow velocity before loss |
@@ -255,8 +272,6 @@ Dev follows the upstream recipe: fixed 28-step timetable, guidance `0.0`, shift 
 ## Links
 
 - Demo: [HiDream-O1-Image](https://huggingface.co/spaces/HiDream-ai/HiDream-O1-Image)
-- Official Full model: [HiDream-ai/HiDream-O1-Image](https://huggingface.co/HiDream-ai/HiDream-O1-Image)
-- Official Dev 2604 model: [HiDream-ai/HiDream-O1-Image-Dev-2604](https://huggingface.co/HiDream-ai/HiDream-O1-Image-Dev-2604)
 - Dev 2604 BF16 model: [drbaph/HiDream-O1-Image-Dev-2604-BF16](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-2604-BF16)
 - Dev 2604 FP16 model: [drbaph/HiDream-O1-Image-Dev-2604-FP16](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-2604-FP16)
 - Dev 2604 FP8 model: [drbaph/HiDream-O1-Image-Dev-2604-FP8](https://huggingface.co/drbaph/HiDream-O1-Image-Dev-2604-FP8)

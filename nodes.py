@@ -54,9 +54,10 @@ SAMPLER_INPUT_DEFAULTS = {
 TOOLTIPS = {
     "model": "Loaded HiDream O1 model handle.",
     "conditioning": "Prompt conditioning from HiDream O1 Conditioning.",
-    "model_name": "HiDream O1 model choice. Canonical official Full, Dev-2604, and converted BF16/FP16/FP8 entries are always shown; missing entries download only when download_if_missing is enabled.",
+    "model_name": "HiDream O1 model choice. Converted Full/Dev BF16, FP16, FP8, and Dev-2604 entries are always shown; missing entries download only when download_if_missing is enabled.",
     "lora_name": "HiDream O1 LoRA file from models/loras.",
     "lora_strength": "Default: 1.0. LoRA model strength from -10.0 to 10.0; 0 disables the LoRA.",
+    "smoothing": "Dev/Dev-2604 only. Applies patch-grid smoothing in the last denoise steps to reduce visible tile seams.",
     "precision": "Weight precision to load. Default: auto detects the safetensors dtype. FP16/FP8 weights use BF16 compute on BF16-capable GPUs to avoid NaNs.",
     "attention": "Attention backend. Default: auto uses FlashAttention when installed, otherwise SDPA. Use sage only if sageattention is installed.",
     "download_if_missing": "Default: false. If the selected canonical model is missing locally, enabling this downloads that selected model into models/diffusion_models.",
@@ -106,6 +107,10 @@ def _refs_from_dynamic_image(image):
     return _collect_ref_images(image, count)
 
 
+def _is_dev_model(model: HiDreamO1Handle) -> bool:
+    return "dev" in model.model_dir.name.lower()
+
+
 def _run_sampler(
     model: HiDreamO1Handle,
     conditioning,
@@ -130,10 +135,13 @@ def _run_sampler(
     prompt = conditioning["prompt"]
     negative_prompt = conditioning.get("negative_prompt", "")
     refs = refs or conditioning.get("refs") or []
+    smoothing = dict(model.smoothing or {})
     keep_image1_aspect = bool(keep_image1_aspect and refs)
     resolved_type = "dev" if model_type == "auto" and "dev" in model.model_dir.name.lower() else model_type
     if resolved_type == "auto":
         resolved_type = "full"
+    if smoothing and (resolved_type != "dev" or not _is_dev_model(model)):
+        raise RuntimeError("HiDream O1 smoothing is only supported for Dev/Dev-2604 model folders in dev mode.")
 
     if resolved_type == "dev":
         if steps not in (0, len(DEFAULT_TIMESTEPS)):
@@ -208,6 +216,13 @@ def _run_sampler(
             noise_scale_end=noise_scale_end,
             noise_clip_std=noise_clip_std,
             layout_bboxes=layout_bboxes or None,
+            seam_smooth_steps=int(smoothing.get("steps", 0)),
+            seam_smooth_strength=float(smoothing.get("strength", 0.5)),
+            seam_smooth_schedule=str(smoothing.get("schedule", "constant")),
+            seam_smooth_shift_mode=str(smoothing.get("shift_mode", "rotate")),
+            seam_smooth_adaptive_threshold=float(smoothing.get("adaptive_threshold", 0.0)),
+            seam_smooth_multiscale=bool(smoothing.get("multiscale", False)),
+            seam_smooth_cfg_aware=bool(smoothing.get("cfg_aware", False)),
             keep_original_aspect=keep_image1_aspect,
             use_flash_attn=attention_backend == "flash",
             use_sage_attn=attention_backend == "sage",
@@ -384,6 +399,91 @@ class HiDreamO1Lora:
         return (apply_hidream_lora(model, lora, strength, lora_name=lora_name),)
 
 
+class HiDreamO1DevSmoothing:
+    SCHEDULES = ["constant", "linear", "cosine", "front_loaded", "late"]
+    SHIFT_MODES = ["rotate", "static", "all"]
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "model": ("HIDREAM_O1_MODEL", {"tooltip": TOOLTIPS["model"]}),
+                "steps": (
+                    "INT",
+                    {
+                        "default": 4,
+                        "min": 0,
+                        "max": 10,
+                        "step": 1,
+                        "tooltip": "Final denoise steps to run patch-grid smoothing. 0 disables smoothing.",
+                    },
+                ),
+                "strength": (
+                    "FLOAT",
+                    {
+                        "default": 0.5,
+                        "min": 0.0,
+                        "max": 1.0,
+                        "step": 0.05,
+                        "tooltip": "Blend strength for the shifted patch prediction.",
+                    },
+                ),
+                "schedule": (cls.SCHEDULES, {"default": "constant"}),
+                "shift_mode": (cls.SHIFT_MODES, {"default": "rotate"}),
+                "adaptive_threshold": (
+                    "FLOAT",
+                    {
+                        "default": 0.0,
+                        "min": 0.0,
+                        "max": 5.0,
+                        "step": 0.01,
+                        "tooltip": "Skip smoothing when estimated seam intensity is below this value. 0 disables the skip check.",
+                    },
+                ),
+                "multiscale": ("BOOLEAN", {"default": False}),
+                "cfg_aware": (
+                    "BOOLEAN",
+                    {
+                        "default": False,
+                        "tooltip": "Also smooth the unconditional branch when CFG is active. Costs extra forwards.",
+                    },
+                ),
+            },
+        }
+
+    RETURN_TYPES = ("HIDREAM_O1_MODEL",)
+    RETURN_NAMES = ("model",)
+    FUNCTION = "apply_smoothing"
+    CATEGORY = "HiDream O1"
+
+    def apply_smoothing(
+        self,
+        model: HiDreamO1Handle,
+        steps: int,
+        strength: float,
+        schedule: str,
+        shift_mode: str,
+        adaptive_threshold: float,
+        multiscale: bool,
+        cfg_aware: bool,
+    ):
+        steps = int(steps)
+        if steps <= 0:
+            return (model.clone_with_smoothing(None),)
+        if not _is_dev_model(model):
+            raise RuntimeError("HiDream O1 smoothing only supports Dev/Dev-2604 model folders.")
+        smoothing = {
+            "steps": steps,
+            "strength": float(strength),
+            "schedule": schedule,
+            "shift_mode": shift_mode,
+            "adaptive_threshold": float(adaptive_threshold),
+            "multiscale": bool(multiscale),
+            "cfg_aware": bool(cfg_aware),
+        }
+        return (model.clone_with_smoothing(smoothing),)
+
+
 class HiDreamO1DatasetMaker:
     @classmethod
     def INPUT_TYPES(cls):
@@ -457,7 +557,6 @@ class HiDreamO1TrainConfig:
 class HiDreamO1LoraTrainer:
     TRAIN_MODEL_CHOICES = [
         "HiDream-O1-Image-BF16",
-        "HiDream-O1-Image",
         "HiDream-O1-Image-FP16",
         "HiDream-O1-Image-FP8",
     ]
@@ -681,6 +780,7 @@ NODE_CLASS_MAPPINGS = {
     "HiDreamO1ModelLoader": HiDreamO1ModelLoader,
     "HiDreamO1Conditioning": HiDreamO1Conditioning,
     "HiDreamO1Lora": HiDreamO1Lora,
+    "HiDreamO1DevSmoothing": HiDreamO1DevSmoothing,
     "HiDreamO1DatasetMaker": HiDreamO1DatasetMaker,
     "HiDreamO1TrainConfig": HiDreamO1TrainConfig,
     "HiDreamO1LoraTrainer": HiDreamO1LoraTrainer,
@@ -691,6 +791,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "HiDreamO1ModelLoader": "HiDream O1 Model Loader",
     "HiDreamO1Conditioning": "HiDream O1 Conditioning",
     "HiDreamO1Lora": "HiDream O1 LoRA",
+    "HiDreamO1DevSmoothing": "HiDream O1 Dev Smoothing",
     "HiDreamO1DatasetMaker": "HiDream O1 Dataset Maker",
     "HiDreamO1TrainConfig": "HiDream O1 Train Config",
     "HiDreamO1LoraTrainer": "HiDream O1 LoRA Trainer",

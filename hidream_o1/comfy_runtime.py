@@ -60,9 +60,6 @@ MODEL_FOLDER_LABELS = (
 )
 
 DOWNLOAD_TARGETS = {
-    "full_official": {
-        "bf16": ("HiDream-ai/HiDream-O1-Image", "HiDream-O1-Image"),
-    },
     "full": {
         "bf16": ("drbaph/HiDream-O1-Image-BF16", "HiDream-O1-Image-bf16"),
         "fp16": ("drbaph/HiDream-O1-Image-FP16", "HiDream-O1-Image-fp16"),
@@ -73,9 +70,6 @@ DOWNLOAD_TARGETS = {
         "fp16": ("drbaph/HiDream-O1-Image-Dev-FP16", "HiDream-O1-Image-Dev-fp16"),
         "fp8": ("drbaph/HiDream-O1-Image-Dev-FP8", "HiDream-O1-Image-Dev-fp8"),
     },
-    "dev_2604_official": {
-        "bf16": ("HiDream-ai/HiDream-O1-Image-Dev-2604", "HiDream-O1-Image-Dev-2604"),
-    },
     "dev_2604": {
         "bf16": ("drbaph/HiDream-O1-Image-Dev-2604-BF16", "HiDream-O1-Image-Dev-2604-bf16"),
         "fp16": ("drbaph/HiDream-O1-Image-Dev-2604-FP16", "HiDream-O1-Image-Dev-2604-fp16"),
@@ -84,11 +78,9 @@ DOWNLOAD_TARGETS = {
 }
 
 CANONICAL_MODEL_CHOICES = {
-    "HiDream-O1-Image": ("full_official", "bf16"),
     "HiDream-O1-Image-BF16": ("full", "bf16"),
     "HiDream-O1-Image-FP16": ("full", "fp16"),
     "HiDream-O1-Image-FP8": ("full", "fp8_e4m3fn"),
-    "HiDream-O1-Image-Dev-2604": ("dev_2604_official", "bf16"),
     "HiDream-O1-Image-Dev-2604-BF16": ("dev_2604", "bf16"),
     "HiDream-O1-Image-Dev-2604-FP16": ("dev_2604", "fp16"),
     "HiDream-O1-Image-Dev-2604-FP8": ("dev_2604", "fp8_e4m3fn"),
@@ -534,6 +526,7 @@ class HiDreamO1Handle:
     dtype: torch.dtype
     weight_dtype: torch.dtype
     attention: str
+    smoothing: dict | None = None
 
     def load_for_inference(self, memory_required: int = 0) -> HiDreamTorchWrapper:
         prune_stale_loaded_models()
@@ -640,6 +633,18 @@ class HiDreamO1Handle:
             dtype=self.dtype,
             weight_dtype=self.weight_dtype,
             attention=self.attention,
+            smoothing=self.smoothing,
+        )
+
+    def clone_with_smoothing(self, smoothing: dict | None) -> "HiDreamO1Handle":
+        return HiDreamO1Handle(
+            patcher=self.patcher,
+            processor=self.processor,
+            model_dir=self.model_dir,
+            dtype=self.dtype,
+            weight_dtype=self.weight_dtype,
+            attention=self.attention,
+            smoothing=smoothing,
         )
 
 

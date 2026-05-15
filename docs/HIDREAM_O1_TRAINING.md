@@ -23,7 +23,6 @@ Default `noise_scale` is `8.0`, matching AI Toolkit's HiDream O1 model kwargs.
 Use a Full model for LoRA training:
 
 - `HiDream-O1-Image-BF16` is the default Comfy training choice.
-- `HiDream-O1-Image` is the official upstream full BF16 folder choice.
 - `HiDream-O1-Image-FP8` can be used when VRAM is tight, with BF16 compute where supported.
 
 Dev and Dev-2604 are intentionally not exposed in the training node. They are distilled inference variants and can train unpredictably. Upstream also recommends the Full model for editing tasks.
@@ -132,7 +131,6 @@ If colors blow out immediately:
 
 Dev-2604 is available in the model loader for inference:
 
-- `HiDream-O1-Image-Dev-2604`
 - `HiDream-O1-Image-Dev-2604-BF16`
 - `HiDream-O1-Image-Dev-2604-FP16`
 - `HiDream-O1-Image-Dev-2604-FP8`
