@@ -123,7 +123,16 @@ model.safetensors
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
 | `prompt` | 电影感人像提示词 | 正向提示词 |
+| `enhanced_prompt` | 可选输入 | 可连接 ComfyUI 自带 `Prompt Enhance` 子图或任意 prompt 增强器输出的 `STRING`；连接且非空时会替代 `prompt` 文本框 |
 | `negative_prompt` | 空 | Full 模式下，当 `guidance_scale > 1.0` 时作为无条件 CFG 分支；Dev 模式忽略 CFG |
+
+可选的 ComfyUI 自带 prompt 增强流程（通用流程，不是 HiDream-O1 专用）：
+
+```text
+Prompt Enhance -> HiDream O1 Conditioning enhanced_prompt
+```
+
+ComfyUI 自带的 `Prompt Enhance` 蓝图是封装 `Google Gemini` 节点的通用子图，不属于 HiDream-O1 原生模型/conditioning 路径，也不是本地 Gemma 4 的 `Generate Text` 节点。通用 `Generate Text` 节点仍可在自定义指令时使用，但它不是同一个 prompt 增强流程。
 
 ### HiDream O1 LoRA
 

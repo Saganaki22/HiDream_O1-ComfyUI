@@ -62,6 +62,7 @@ TOOLTIPS = {
     "attention": "Attention backend. Default: auto uses FlashAttention when installed, otherwise SDPA. Use sage only if sageattention is installed.",
     "download_if_missing": "Default: false. If the selected canonical model is missing locally, enabling this downloads that selected model into models/diffusion_models.",
     "prompt": "Text instruction for HiDream O1. Default is a simple cinematic portrait prompt.",
+    "enhanced_prompt": "Optional STRING input from ComfyUI's bundled Prompt Enhance subgraph or any prompt-enhancer output. When connected and non-empty, this replaces the prompt textbox.",
     "negative_prompt": "Default: empty. Used as the unconditional CFG branch in full mode when guidance_scale is above 1. Dev mode ignores CFG.",
     "model_type": "Default: auto. Uses dev settings when the model folder name contains dev, otherwise full settings.",
     "width": "Requested output width. Default: 2048. HiDream snaps to its nearest supported patch-aligned resolution.",
@@ -338,6 +339,17 @@ class HiDreamO1Conditioning:
                     },
                 ),
             },
+            "optional": {
+                "enhanced_prompt": (
+                    "STRING",
+                    {
+                        "forceInput": True,
+                        "multiline": True,
+                        "default": "",
+                        "tooltip": TOOLTIPS["enhanced_prompt"],
+                    },
+                ),
+            },
         }
 
     RETURN_TYPES = ("HIDREAM_O1_CONDITIONING",)
@@ -345,8 +357,9 @@ class HiDreamO1Conditioning:
     FUNCTION = "condition"
     CATEGORY = "HiDream O1"
 
-    def condition(self, prompt: str, negative_prompt: str = ""):
-        return ({"prompt": prompt, "negative_prompt": negative_prompt},)
+    def condition(self, prompt: str, negative_prompt: str = "", enhanced_prompt: str | None = None):
+        active_prompt = enhanced_prompt.strip() if isinstance(enhanced_prompt, str) and enhanced_prompt.strip() else prompt
+        return ({"prompt": active_prompt, "negative_prompt": negative_prompt},)
 
 
 class HiDreamO1Lora:

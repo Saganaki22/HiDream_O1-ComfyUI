@@ -130,7 +130,16 @@ Creates prompt conditioning for the sampler.
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `prompt` | cinematic portrait prompt | Text instruction for generation |
+| `enhanced_prompt` | optional input | Optional `STRING` input from ComfyUI's bundled `Prompt Enhance` subgraph or any prompt-enhancer output; when connected and non-empty, it replaces the prompt textbox |
 | `negative_prompt` | empty | Negative prompt used as the unconditional CFG branch in full mode when `guidance_scale` is above `1.0`; dev mode ignores CFG |
+
+Optional bundled ComfyUI prompt-enhancement flow (generic, not HiDream-O1-specific):
+
+```text
+Prompt Enhance -> HiDream O1 Conditioning enhanced_prompt
+```
+
+ComfyUI's bundled `Prompt Enhance` blueprint is a generic subgraph around the `Google Gemini` node, not part of the native HiDream-O1 model/conditioning path and not the local Gemma 4 `Generate Text` node. The generic `Generate Text` node can still be used if you provide your own instruction prompt, but it is not the same prompt-enhancement workflow.
 
 ### HiDream O1 LoRA
 

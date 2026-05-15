@@ -1,0 +1,1831 @@
+{
+  "id": "00dc0d7e-198c-44d4-8208-5ebbb53f065b",
+  "revision": 0,
+  "last_node_id": 240,
+  "last_link_id": 360,
+  "nodes": [
+    {
+      "id": 4,
+      "type": "HiDreamO1Conditioning",
+      "pos": [
+        1980.8317976864907,
+        -200.03547908241944
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "enhanced_prompt",
+          "shape": 7,
+          "type": "STRING",
+          "link": 356
+        }
+      ],
+      "outputs": [
+        {
+          "name": "conditioning",
+          "type": "HIDREAM_O1_CONDITIONING",
+          "links": [
+            3
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "HiDream_O1-ComfyUI",
+        "ver": "c16d0047acde61e57274629a2c742a1fb7310e9a",
+        "Node name for S&R": "HiDreamO1Conditioning"
+      },
+      "widgets_values": [
+        "",
+        ""
+      ]
+    },
+    {
+      "id": 231,
+      "type": "ComfySwitchNode",
+      "pos": [
+        1913.96440729141,
+        -152.1068130293272
+      ],
+      "size": [
+        225,
+        54
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "on_false",
+          "type": "STRING",
+          "link": 352
+        },
+        {
+          "name": "on_true",
+          "type": "STRING",
+          "link": 353
+        },
+        {
+          "name": "switch",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "switch"
+          },
+          "link": 354
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "STRING",
+          "links": [
+            355
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.21.0",
+        "Node name for S&R": "ComfySwitchNode",
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65
+      },
+      "widgets_values": [
+        false
+      ]
+    },
+    {
+      "id": 230,
+      "type": "9eb5e812-b4d5-4e4d-add7-be79575a80d9",
+      "pos": [
+        1762.3946443778784,
+        -252.5998649928286
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "user_prompt",
+          "name": "replace",
+          "type": "STRING",
+          "widget": {
+            "name": "replace"
+          },
+          "link": 351
+        },
+        {
+          "name": "image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "STRING",
+          "links": [
+            353
+          ]
+        }
+      ],
+      "properties": {
+        "proxyWidgets": [
+          [
+            "170",
+            "replace"
+          ],
+          [
+            "167",
+            "clip_name"
+          ]
+        ],
+        "cnr_id": "comfy-core",
+        "ver": "0.21.0",
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 10,
+      "type": "HiDreamO1DevSmoothing",
+      "pos": [
+        1834.1671589714495,
+        -533.4161996035464
+      ],
+      "size": [
+        282.47421875,
+        202
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "HIDREAM_O1_MODEL",
+          "link": 10
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "HIDREAM_O1_MODEL",
+          "links": [
+            9
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "HiDream_O1-ComfyUI",
+        "ver": "7dc2faed92d5ce6eebae322498bda8660a7b0ebb",
+        "Node name for S&R": "HiDreamO1DevSmoothing"
+      },
+      "widgets_values": [
+        4,
+        0.5,
+        "constant",
+        "rotate",
+        0,
+        false,
+        false
+      ]
+    },
+    {
+      "id": 3,
+      "type": "HiDreamO1Sampler",
+      "pos": [
+        2228.6034660966166,
+        -439.7140687695576
+      ],
+      "size": [
+        442.9878041764887,
+        700
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "HIDREAM_O1_MODEL",
+          "link": 9
+        },
+        {
+          "name": "conditioning",
+          "type": "HIDREAM_O1_CONDITIONING",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            4
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "HiDream_O1-ComfyUI",
+        "ver": "c16d0047acde61e57274629a2c742a1fb7310e9a",
+        "Node name for S&R": "HiDreamO1Sampler"
+      },
+      "widgets_values": [
+        "auto",
+        2048,
+        2048,
+        0,
+        539108371677268,
+        "randomize",
+        5,
+        -1,
+        7.5,
+        8,
+        2.5,
+        "flash",
+        "",
+        2,
+        false,
+        false,
+        "0"
+      ]
+    },
+    {
+      "id": 237,
+      "type": "HiDreamO1TrainConfig",
+      "pos": [
+        2176.323612232399,
+        383.33468002814624
+      ],
+      "size": [
+        296.5625,
+        514
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 4,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "train_config",
+          "type": "HIDREAM_O1_TRAIN_CONFIG",
+          "links": [
+            358
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "HiDream_O1-ComfyUI",
+        "ver": "c16d0047acde61e57274629a2c742a1fb7310e9a",
+        "Node name for S&R": "HiDreamO1TrainConfig"
+      },
+      "widgets_values": [
+        0.0001,
+        32,
+        32,
+        0,
+        0.0001,
+        0,
+        1,
+        1024,
+        0.05,
+        "linear",
+        3,
+        0.001,
+        0.999,
+        8,
+        "velocity",
+        1,
+        1,
+        "aitoolkit",
+        true,
+        "bf16"
+      ]
+    },
+    {
+      "id": 236,
+      "type": "HiDreamO1DatasetMaker",
+      "pos": [
+        2194.126982638326,
+        960.8713890372633
+      ],
+      "size": [
+        277.38828125,
+        82
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 4,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "dataset_path",
+          "type": "STRING",
+          "links": [
+            359
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "HiDream_O1-ComfyUI",
+        "ver": "ebd8457f0e45dbf7ee6601a806c53047d1445528",
+        "Node name for S&R": "HiDreamO1DatasetMaker"
+      },
+      "widgets_values": [
+        "C:\\Users\\drbaph\\Downloads\\Monoyo",
+        "train.jsonl"
+      ]
+    },
+    {
+      "id": 239,
+      "type": "PreviewAny",
+      "pos": [
+        2980.06311634983,
+        633.2746909211428
+      ],
+      "size": [
+        210,
+        122.93299079079418
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 10,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 360
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.21.0",
+        "Node name for S&R": "PreviewAny",
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65
+      },
+      "widgets_values": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": 238,
+      "type": "HiDreamO1LoraTrainer",
+      "pos": [
+        2572.8833362251876,
+        615.2944128931202
+      ],
+      "size": [
+        358.8170742894422,
+        272.61853964653244
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "train_config",
+          "type": "HIDREAM_O1_TRAIN_CONFIG",
+          "link": 358
+        },
+        {
+          "name": "dataset_path",
+          "type": "STRING",
+          "widget": {
+            "name": "dataset_path"
+          },
+          "link": 359
+        }
+      ],
+      "outputs": [
+        {
+          "name": "lora_output_dir",
+          "type": "STRING",
+          "links": [
+            360
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "HiDream_O1-ComfyUI",
+        "ver": "c16d0047acde61e57274629a2c742a1fb7310e9a",
+        "Node name for S&R": "HiDreamO1LoraTrainer"
+      },
+      "widgets_values": [
+        "HiDream-O1-Image-BF16",
+        "auto",
+        "auto",
+        false,
+        "",
+        "hidream_o1_lora",
+        1250,
+        250,
+        0
+      ]
+    },
+    {
+      "id": 232,
+      "type": "PreviewAny",
+      "pos": [
+        1776.304536606047,
+        -13.955322793609632
+      ],
+      "size": [
+        394.829040994611,
+        232.43587861932815
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 355
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            356
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.21.0",
+        "Node name for S&R": "PreviewAny",
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65
+      },
+      "widgets_values": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": 5,
+      "type": "PreviewImage",
+      "pos": [
+        2703.374616646722,
+        -408.8616982116038
+      ],
+      "size": [
+        498.5554307047287,
+        669.1086745738005
+      ],
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 4
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.21.1",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 2,
+      "type": "HiDreamO1ModelLoader",
+      "pos": [
+        1433.4861066399699,
+        -591.5450623589926
+      ],
+      "size": [
+        281.9140625,
+        130
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "HIDREAM_O1_MODEL",
+          "links": [
+            1
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "HiDream_O1-ComfyUI",
+        "ver": "c16d0047acde61e57274629a2c742a1fb7310e9a",
+        "Node name for S&R": "HiDreamO1ModelLoader"
+      },
+      "widgets_values": [
+        "HiDream-O1-Image-Dev-2604-BF16",
+        "auto",
+        "auto",
+        false
+      ]
+    },
+    {
+      "id": 229,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        1417.8340227278572,
+        -344.71343273778024
+      ],
+      "size": [
+        310,
+        320
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            351,
+            352
+          ]
+        }
+      ],
+      "title": "User Prompt",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.21.0",
+        "Node name for S&R": "PrimitiveStringMultiline",
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65
+      },
+      "widgets_values": [
+        "A close-up, highly detailed photograph of a man, appearing as a developer or hobbyist, standing in a modern, dimly lit home office environment. He is holding up a handmade, rustic wooden sign with visible grain and texture. The sign features the text \"Hidream O1 Custom nodes can now train LoRA\" written clearly in a bold, casual, handwritten script using dark black ink. The lighting should be dramatic, utilizing a single warm desk lamp casting strong shadows (chiaroscuro effect) across his face and the sign, highlighting the texture of the wood and the ink. The composition is a medium close-up, focusing sharply on the man's hands and the sign, while the background shows subtle elements of high-end computer hardware or monitors, rendered with a shallow depth of field (bokeh). Cinematic color grading with deep blues and warm amber tones, captured with an 85mm prime lens for beautiful subject isolation."
+      ]
+    },
+    {
+      "id": 233,
+      "type": "PrimitiveBoolean",
+      "pos": [
+        1426.9929010334552,
+        123.64311309478002
+      ],
+      "size": [
+        284.9282614763565,
+        80
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "BOOLEAN",
+          "type": "BOOLEAN",
+          "links": [
+            354
+          ]
+        }
+      ],
+      "title": "Enable Prompt Refine?",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.21.0",
+        "Node name for S&R": "PrimitiveBoolean",
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65
+      },
+      "widgets_values": [
+        false
+      ]
+    },
+    {
+      "id": 1,
+      "type": "HiDreamO1Lora",
+      "pos": [
+        1838.9816262490676,
+        -660.316625687636
+      ],
+      "size": [
+        259.23600008107906,
+        82
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "HIDREAM_O1_MODEL",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "HIDREAM_O1_MODEL",
+          "links": [
+            10
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "HiDream_O1-ComfyUI",
+        "ver": "c16d0047acde61e57274629a2c742a1fb7310e9a",
+        "Node name for S&R": "HiDreamO1Lora"
+      },
+      "widgets_values": [
+        "hidream_o1_monoyo_lora/hidream_o1_monoyo_lora_step_750.safetensors",
+        1
+      ]
+    },
+    {
+      "id": 234,
+      "type": "MarkdownNote",
+      "pos": [
+        1167.4359625678314,
+        -93.91281509950458
+      ],
+      "size": [
+        210,
+        359.3194550556751
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "The O1 model is trained under the following resolutions:\n| Width | Height | Category   |\n|-------|--------|------------|\n| 2048  | 2048   | Square     |\n| 2304  | 1728   | Landscape  |\n| 2304  | 1792   | Landscape  |\n| 2496  | 1664   | Landscape  |\n| 2560  | 1440   | Landscape  |\n| 3104  | 1312   | Landscape  |\n| 1728  | 2304   | Portrait   |\n| 1792  | 2304   | Portrait   |\n| 1664  | 2496   | Portrait   |\n| 1440  | 2560   | Portrait   |\n| 1312  | 3104   | Portrait   |"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 240,
+      "type": "MarkdownNote",
+      "pos": [
+        1922.3429765118956,
+        353.6200389253596
+      ],
+      "size": [
+        210,
+        88
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "For more information on training, check out the [Training Documentation](https://github.com/Saganaki22/HiDream_O1-ComfyUI/blob/main/docs/HIDREAM_O1_TRAINING.md)."
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    }
+  ],
+  "links": [
+    [
+      1,
+      2,
+      0,
+      1,
+      0,
+      "HIDREAM_O1_MODEL"
+    ],
+    [
+      3,
+      4,
+      0,
+      3,
+      1,
+      "HIDREAM_O1_CONDITIONING"
+    ],
+    [
+      4,
+      3,
+      0,
+      5,
+      0,
+      "IMAGE"
+    ],
+    [
+      9,
+      10,
+      0,
+      3,
+      0,
+      "HIDREAM_O1_MODEL"
+    ],
+    [
+      10,
+      1,
+      0,
+      10,
+      0,
+      "HIDREAM_O1_MODEL"
+    ],
+    [
+      351,
+      229,
+      0,
+      230,
+      0,
+      "STRING"
+    ],
+    [
+      352,
+      229,
+      0,
+      231,
+      0,
+      "STRING"
+    ],
+    [
+      353,
+      230,
+      0,
+      231,
+      1,
+      "STRING"
+    ],
+    [
+      354,
+      233,
+      0,
+      231,
+      2,
+      "BOOLEAN"
+    ],
+    [
+      355,
+      231,
+      0,
+      232,
+      0,
+      "STRING"
+    ],
+    [
+      356,
+      232,
+      0,
+      4,
+      0,
+      "STRING"
+    ],
+    [
+      358,
+      237,
+      0,
+      238,
+      0,
+      "HIDREAM_O1_TRAIN_CONFIG"
+    ],
+    [
+      359,
+      236,
+      0,
+      238,
+      1,
+      "STRING"
+    ],
+    [
+      360,
+      238,
+      0,
+      239,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 15,
+      "title": "Optional LoRA + Dev Smoothing",
+      "bounding": [
+        1813.8824268849598,
+        -737.6628428754946,
+        320.71987869600343,
+        426.53131931146333
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 16,
+      "title": "LoRA Training",
+      "bounding": [
+        2166.323612232399,
+        313.33468002814624,
+        1038.9484201902758,
+        784.3213668899599
+      ],
+      "color": "#8AA",
+      "flags": {}
+    },
+    {
+      "id": 17,
+      "title": "Inference",
+      "bounding": [
+        1407.8340227278572,
+        -777.6628428754946,
+        1804.0960246235936,
+        1047.948774105937
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
+  "definitions": {
+    "subgraphs": [
+      {
+        "id": "9eb5e812-b4d5-4e4d-add7-be79575a80d9",
+        "version": 1,
+        "state": {
+          "lastGroupId": 17,
+          "lastNodeId": 240,
+          "lastLinkId": 360,
+          "lastRerouteId": 0
+        },
+        "revision": 0,
+        "config": {},
+        "name": "Prompt Enhancement",
+        "inputNode": {
+          "id": -10,
+          "bounding": [
+            -4280,
+            5580,
+            128,
+            108
+          ]
+        },
+        "outputNode": {
+          "id": -20,
+          "bounding": [
+            -130,
+            5680,
+            128,
+            68
+          ]
+        },
+        "inputs": [
+          {
+            "id": "8e257a84-6ce5-4e50-b571-2118cc7a0b8f",
+            "name": "replace",
+            "type": "STRING",
+            "linkIds": [
+              248
+            ],
+            "localized_name": "replace",
+            "label": "user_prompt",
+            "pos": [
+              -4176,
+              5604
+            ]
+          },
+          {
+            "id": "eae67611-94a9-4fb3-abd7-a29bc95db936",
+            "name": "clip_name",
+            "type": "COMBO",
+            "linkIds": [
+              263
+            ],
+            "pos": [
+              -4176,
+              5624
+            ]
+          },
+          {
+            "id": "46f381cb-503d-4a53-b419-f510752553e6",
+            "name": "image",
+            "type": "IMAGE",
+            "linkIds": [
+              269
+            ],
+            "pos": [
+              -4176,
+              5644
+            ]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "54294308-5a73-4d61-a8dd-ff5b58aa91e8",
+            "name": "output",
+            "type": "STRING",
+            "linkIds": [
+              292
+            ],
+            "localized_name": "output",
+            "pos": [
+              -106,
+              5704
+            ]
+          }
+        ],
+        "widgets": [],
+        "nodes": [
+          {
+            "id": 165,
+            "type": "PrimitiveStringMultiline",
+            "pos": [
+              -3930,
+              5440
+            ],
+            "size": [
+              510,
+              440
+            ],
+            "flags": {
+              "collapsed": false
+            },
+            "order": 0,
+            "mode": 0,
+            "inputs": [],
+            "outputs": [
+              {
+                "localized_name": "STRING",
+                "name": "STRING",
+                "type": "STRING",
+                "links": [
+                  243
+                ]
+              }
+            ],
+            "title": "REWRITE_SYSTEM_PROMPT",
+            "properties": {
+              "cnr_id": "comfy-core",
+              "ver": "0.21.0",
+              "Node name for S&R": "PrimitiveStringMultiline",
+              "enableTabs": false,
+              "tabWidth": 65,
+              "tabXOffset": 10,
+              "hasSecondTab": false,
+              "secondTabText": "Send Back",
+              "secondTabOffset": 80,
+              "secondTabWidth": 65
+            },
+            "widgets_values": [
+              "<|turn>system\n你是专业的AI图像生成Prompt工程师的Prompt Engineering Engine,也是一名拥有百科知识和视觉导演能力的创意总监.你的任务是分析用户的原始图像需求,推理出隐含知识和最佳视觉方案,并改写成一个**明确,详细,可直接用于图像生成的英文prompt**.\n\n## 核心目标\n\n图像生成模型只能执行直接的视觉描述,不能自行补全背景知识,逻辑关系或文字内容.因此,你必须提前完成知识解析,空间规划和视觉导演,把结果显式写入prompt中.\n\n使用 SCALIST 框架扩写每个画面:\n- **Subject**: 主体的身份,外观,颜色,材质,纹理,动作,表情,服饰.\n- **Composition**: 镜头景别,视角,主体位置,前景/中景/背景层次,留白和视觉焦点.\n- **Action**: 主体正在做什么,动作方向,姿态,互动关系.\n- **Location**: 场景地点,室内/室外,时代,天气,时间段,环境细节.\n- **Image style**: photorealistic, cinematic, oil painting, watercolor, anime, 3D render 等,并匹配合适的光线和色彩氛围.\n- **Specs**: 摄影/渲染参数,如 85mm lens, low-angle shot, shallow depth of field, soft diffused light, dramatic backlighting, matte texture, sharp focus.\n- **Text rendering**: 如果用户要求文字,必须把准确文字放在英文双引号中,并说明字体风格,颜色,大小,材质和精确位置.\n\n1. **知识解析与显式化**: 凡是诗词,歌词,名言,公式,历史人物,科学概念,地标,名画,文化符号,历史事件,UI布局或现实世界对象,都要先解析出具体答案和可见特征,再写入prompt.不要只写 \"Mona Lisa\",\"Dunkirk evacuation\",\"freedom\" 这类需要模型自行理解的词.\n2. **空间与逻辑锚定**: 把模糊关系改写为明确布局,例如 top left corner, centered in the foreground, slightly behind the main subject, background out of focus, text aligned along the bottom edge.不要使用\"旁边\"\"一些\"\"好看\"等含糊表达.\n3. **文字排版精度**: 中文,英文,公式,多语言文本都必须逐字保留在引号中,例如 \"床前明月光,疑是地上霜.举头望明月,低头思故乡.\" 或 \"E = mc²\";同时指定字体(calligraphy, serif, sans-serif, handwritten),颜色,材质和位置.\n4. **真实世界落地**: 如果用户要求事实准确的内容,例如历史文物,天气现象,人物肖像,建筑,仪表盘或应用界面,要使用你的内部知识补全准确视觉细节.\n5. **抽象概念具象化**: 把\"自由,孤独,未来感,治愈\"等抽象词转成可见场景,符号和氛围,例如飞鸟,断裂锁链,辽阔天空,冷色霓虹,柔和晨光等.\n\n## 示例与学习\n\n- 用户说\"李白的静夜思写在墙上\",prompt 应写出完整中文诗句,并指定它以优雅中国书法写在古旧石墙的哪个位置.\n- 用户说\"三大力学的奠基人\"或\"爱因斯坦写质能方程\",prompt 应解析出 Isaac Newton 或 Albert Einstein,并描述人物外貌,时代服饰,黑板,公式 \"E = mc²\" 等可见内容.\n- 用户说\"蒙娜丽莎\"\"比萨斜塔\"\"福字\"\"敦刻尔克大撤退\",prompt 应描述对应画面特征: 神秘微笑与交叠双手,倾斜白色大理石钟楼与拱廊,红底金色/黑色书法 \"福\",1940年海滩上等待撤离的士兵和海面船只.\n\n## 输出prompt要求\n\n- prompt 必须是一个英文的,连贯自然的单段落,像 Creative Director's Brief,而不是关键词堆砌或 tag soup.\n- 长度通常为 80-220 词;简单需求可以更短,复杂画面可以更长.\n- 最重要的主体和画面意图放在开头,然后自然展开构图,动作,地点,风格,技术参数和文字渲染.\n- 使用完整句子,丰富但准确的形容词,摄影/绘画/设计术语.\n- 不要包含任何需要图像模型继续推理才能理解的表达.\n- prompt 必须自包含,仅凭prompt本身就能准确生成图片.\n\n## 执行步骤\n\n1. **Analyze**: 识别核心主体,用户意图,文字要求,参考限制和需要解析的隐含知识.\n2. **Reason**: 选择最适宜画面的光线,镜头,角度,纹理,风格,空间布局和事实细节.\n3. **Rewrite**: 输出最终增强后的英文单段落prompt.\n\n只输出JSON,不加任何其他文字:\n{\"prompt\": \"英文单段落prompt\", \"reasoning\": \"你的推理和知识解析过程(需要用用户输入的提示词语言来生成)\", \"resolved_knowledge\": \"你解析了哪些隐含知识(根据输入用户语言简述,如果没有隐含知识用对应语言写'无')\"} \n<|turn|>"
+            ]
+          },
+          {
+            "id": 170,
+            "type": "StringReplace",
+            "pos": [
+              -3930,
+              5930
+            ],
+            "size": [
+              510,
+              260
+            ],
+            "flags": {
+              "collapsed": false
+            },
+            "order": 4,
+            "mode": 0,
+            "inputs": [
+              {
+                "localized_name": "replace",
+                "name": "replace",
+                "type": "STRING",
+                "widget": {
+                  "name": "replace"
+                },
+                "link": 248
+              }
+            ],
+            "outputs": [
+              {
+                "localized_name": "STRING",
+                "name": "STRING",
+                "type": "STRING",
+                "links": [
+                  244
+                ]
+              }
+            ],
+            "properties": {
+              "cnr_id": "comfy-core",
+              "ver": "0.21.0",
+              "Node name for S&R": "StringReplace",
+              "enableTabs": false,
+              "tabWidth": 65,
+              "tabXOffset": 10,
+              "hasSecondTab": false,
+              "secondTabText": "Send Back",
+              "secondTabOffset": 80,
+              "secondTabWidth": 65
+            },
+            "widgets_values": [
+              "<|turn>user\n{user_prompt}<|turn|>\n<|turn>model\n",
+              "{user_prompt}",
+              ""
+            ]
+          },
+          {
+            "id": 166,
+            "type": "StringConcatenate",
+            "pos": [
+              -3350,
+              5440
+            ],
+            "size": [
+              230,
+              220
+            ],
+            "flags": {
+              "collapsed": false
+            },
+            "order": 2,
+            "mode": 0,
+            "inputs": [
+              {
+                "localized_name": "string_a",
+                "name": "string_a",
+                "type": "STRING",
+                "widget": {
+                  "name": "string_a"
+                },
+                "link": 243
+              },
+              {
+                "localized_name": "string_b",
+                "name": "string_b",
+                "type": "STRING",
+                "widget": {
+                  "name": "string_b"
+                },
+                "link": 244
+              }
+            ],
+            "outputs": [
+              {
+                "localized_name": "STRING",
+                "name": "STRING",
+                "type": "STRING",
+                "links": [
+                  251
+                ]
+              }
+            ],
+            "properties": {
+              "cnr_id": "comfy-core",
+              "ver": "0.21.0",
+              "Node name for S&R": "StringConcatenate",
+              "enableTabs": false,
+              "tabWidth": 65,
+              "tabXOffset": 10,
+              "hasSecondTab": false,
+              "secondTabText": "Send Back",
+              "secondTabOffset": 80,
+              "secondTabWidth": 65
+            },
+            "widgets_values": [
+              "",
+              "",
+              ""
+            ]
+          },
+          {
+            "id": 164,
+            "type": "TextGenerate",
+            "pos": [
+              -3070,
+              5220
+            ],
+            "size": [
+              400,
+              412
+            ],
+            "flags": {},
+            "order": 1,
+            "mode": 0,
+            "showAdvanced": true,
+            "inputs": [
+              {
+                "localized_name": "clip",
+                "name": "clip",
+                "type": "CLIP",
+                "link": 241
+              },
+              {
+                "localized_name": "image",
+                "name": "image",
+                "shape": 7,
+                "type": "IMAGE",
+                "link": 269
+              },
+              {
+                "localized_name": "video",
+                "name": "video",
+                "shape": 7,
+                "type": "IMAGE",
+                "link": null
+              },
+              {
+                "localized_name": "audio",
+                "name": "audio",
+                "shape": 7,
+                "type": "AUDIO",
+                "link": null
+              },
+              {
+                "localized_name": "prompt",
+                "name": "prompt",
+                "type": "STRING",
+                "widget": {
+                  "name": "prompt"
+                },
+                "link": 251
+              }
+            ],
+            "outputs": [
+              {
+                "localized_name": "generated_text",
+                "name": "generated_text",
+                "type": "STRING",
+                "links": [
+                  281
+                ]
+              }
+            ],
+            "properties": {
+              "cnr_id": "comfy-core",
+              "ver": "0.21.0",
+              "Node name for S&R": "TextGenerate",
+              "enableTabs": false,
+              "tabWidth": 65,
+              "tabXOffset": 10,
+              "hasSecondTab": false,
+              "secondTabText": "Send Back",
+              "secondTabOffset": 80,
+              "secondTabWidth": 65
+            },
+            "widgets_values": [
+              "",
+              2048,
+              "on",
+              0.7,
+              64,
+              0.95,
+              0.05,
+              1.05,
+              0,
+              0,
+              false,
+              false
+            ]
+          },
+          {
+            "id": 167,
+            "type": "CLIPLoader",
+            "pos": [
+              -3930,
+              5220
+            ],
+            "size": [
+              510,
+              160
+            ],
+            "flags": {},
+            "order": 3,
+            "mode": 0,
+            "inputs": [
+              {
+                "localized_name": "clip_name",
+                "name": "clip_name",
+                "type": "COMBO",
+                "widget": {
+                  "name": "clip_name"
+                },
+                "link": 263
+              }
+            ],
+            "outputs": [
+              {
+                "localized_name": "CLIP",
+                "name": "CLIP",
+                "type": "CLIP",
+                "links": [
+                  241
+                ]
+              }
+            ],
+            "properties": {
+              "cnr_id": "comfy-core",
+              "ver": "0.21.0",
+              "Node name for S&R": "CLIPLoader",
+              "enableTabs": false,
+              "tabWidth": 65,
+              "tabXOffset": 10,
+              "hasSecondTab": false,
+              "secondTabText": "Send Back",
+              "secondTabOffset": 80,
+              "secondTabWidth": 65,
+              "models": [
+                {
+                  "name": "gemma4_e4b_it_fp8_scaled.safetensors",
+                  "url": "https://huggingface.co/Comfy-Org/gemma-4/resolve/main/text_encoders/gemma4_e4b_it_fp8_scaled.safetensors",
+                  "directory": "text_encoders"
+                }
+              ]
+            },
+            "widgets_values": [
+              "gemma4_e4b_it_fp8_scaled.safetensors",
+              "stable_diffusion",
+              "default"
+            ]
+          },
+          {
+            "id": 198,
+            "type": "JsonExtractString",
+            "pos": [
+              -1360,
+              5710
+            ],
+            "size": [
+              400,
+              200
+            ],
+            "flags": {},
+            "order": 5,
+            "mode": 0,
+            "inputs": [
+              {
+                "localized_name": "json_string",
+                "name": "json_string",
+                "type": "STRING",
+                "widget": {
+                  "name": "json_string"
+                },
+                "link": 288
+              }
+            ],
+            "outputs": [
+              {
+                "localized_name": "STRING",
+                "name": "STRING",
+                "type": "STRING",
+                "links": [
+                  291,
+                  292
+                ]
+              }
+            ],
+            "properties": {
+              "cnr_id": "comfy-core",
+              "ver": "0.21.0",
+              "Node name for S&R": "JsonExtractString",
+              "enableTabs": false,
+              "tabWidth": 65,
+              "tabXOffset": 10,
+              "hasSecondTab": false,
+              "secondTabText": "Send Back",
+              "secondTabOffset": 80,
+              "secondTabWidth": 65
+            },
+            "widgets_values": [
+              "",
+              "prompt"
+            ]
+          },
+          {
+            "id": 199,
+            "type": "PreviewAny",
+            "pos": [
+              -2590,
+              5220
+            ],
+            "size": [
+              460,
+              980
+            ],
+            "flags": {},
+            "order": 6,
+            "mode": 4,
+            "inputs": [
+              {
+                "localized_name": "source",
+                "name": "source",
+                "type": "*",
+                "link": 281
+              }
+            ],
+            "outputs": [
+              {
+                "localized_name": "STRING",
+                "name": "STRING",
+                "type": "STRING",
+                "links": [
+                  285
+                ]
+              }
+            ],
+            "properties": {
+              "cnr_id": "comfy-core",
+              "ver": "0.21.0",
+              "Node name for S&R": "PreviewAny",
+              "enableTabs": false,
+              "tabWidth": 65,
+              "tabXOffset": 10,
+              "hasSecondTab": false,
+              "secondTabText": "Send Back",
+              "secondTabOffset": 80,
+              "secondTabWidth": 65
+            },
+            "widgets_values": [
+              null,
+              null,
+              null
+            ]
+          },
+          {
+            "id": 200,
+            "type": "PreviewAny",
+            "pos": [
+              -1640,
+              5240
+            ],
+            "size": [
+              250,
+              220
+            ],
+            "flags": {},
+            "order": 7,
+            "mode": 4,
+            "inputs": [
+              {
+                "localized_name": "source",
+                "name": "source",
+                "type": "*",
+                "link": 286
+              }
+            ],
+            "outputs": [
+              {
+                "localized_name": "STRING",
+                "name": "STRING",
+                "type": "STRING",
+                "links": []
+              }
+            ],
+            "properties": {
+              "cnr_id": "comfy-core",
+              "ver": "0.21.0",
+              "Node name for S&R": "PreviewAny",
+              "enableTabs": false,
+              "tabWidth": 65,
+              "tabXOffset": 10,
+              "hasSecondTab": false,
+              "secondTabText": "Send Back",
+              "secondTabOffset": 80,
+              "secondTabWidth": 65
+            },
+            "widgets_values": [
+              null,
+              null,
+              null
+            ]
+          },
+          {
+            "id": 201,
+            "type": "RegexReplace",
+            "pos": [
+              -2080,
+              5230
+            ],
+            "size": [
+              400,
+              400
+            ],
+            "flags": {},
+            "order": 8,
+            "mode": 0,
+            "showAdvanced": true,
+            "inputs": [
+              {
+                "localized_name": "string",
+                "name": "string",
+                "type": "STRING",
+                "widget": {
+                  "name": "string"
+                },
+                "link": 285
+              }
+            ],
+            "outputs": [
+              {
+                "localized_name": "STRING",
+                "name": "STRING",
+                "type": "STRING",
+                "links": [
+                  286,
+                  287
+                ]
+              }
+            ],
+            "properties": {
+              "cnr_id": "comfy-core",
+              "ver": "0.21.0",
+              "Node name for S&R": "RegexReplace",
+              "enableTabs": false,
+              "tabWidth": 65,
+              "tabXOffset": 10,
+              "hasSecondTab": false,
+              "secondTabText": "Send Back",
+              "secondTabOffset": 80,
+              "secondTabWidth": 65
+            },
+            "widgets_values": [
+              "",
+              "^```(?:json)?\\s*\\n?",
+              "",
+              false,
+              false,
+              false,
+              1
+            ]
+          },
+          {
+            "id": 202,
+            "type": "RegexReplace",
+            "pos": [
+              -2080,
+              5710
+            ],
+            "size": [
+              400,
+              400
+            ],
+            "flags": {},
+            "order": 9,
+            "mode": 0,
+            "showAdvanced": false,
+            "inputs": [
+              {
+                "localized_name": "string",
+                "name": "string",
+                "type": "STRING",
+                "widget": {
+                  "name": "string"
+                },
+                "link": 287
+              }
+            ],
+            "outputs": [
+              {
+                "localized_name": "STRING",
+                "name": "STRING",
+                "type": "STRING",
+                "links": [
+                  288,
+                  290
+                ]
+              }
+            ],
+            "properties": {
+              "cnr_id": "comfy-core",
+              "ver": "0.21.0",
+              "Node name for S&R": "RegexReplace",
+              "enableTabs": false,
+              "tabWidth": 65,
+              "tabXOffset": 10,
+              "hasSecondTab": false,
+              "secondTabText": "Send Back",
+              "secondTabOffset": 80,
+              "secondTabWidth": 65
+            },
+            "widgets_values": [
+              "",
+              "\\n?```\\s*$",
+              "",
+              false,
+              false,
+              false,
+              1
+            ]
+          },
+          {
+            "id": 203,
+            "type": "PreviewAny",
+            "pos": [
+              -1630,
+              5710
+            ],
+            "size": [
+              230,
+              170
+            ],
+            "flags": {},
+            "order": 10,
+            "mode": 4,
+            "inputs": [
+              {
+                "localized_name": "source",
+                "name": "source",
+                "type": "*",
+                "link": 290
+              }
+            ],
+            "outputs": [
+              {
+                "localized_name": "STRING",
+                "name": "STRING",
+                "type": "STRING",
+                "links": []
+              }
+            ],
+            "properties": {
+              "cnr_id": "comfy-core",
+              "ver": "0.21.0",
+              "Node name for S&R": "PreviewAny",
+              "enableTabs": false,
+              "tabWidth": 65,
+              "tabXOffset": 10,
+              "hasSecondTab": false,
+              "secondTabText": "Send Back",
+              "secondTabOffset": 80,
+              "secondTabWidth": 65
+            },
+            "widgets_values": [
+              null,
+              null,
+              null
+            ]
+          },
+          {
+            "id": 204,
+            "type": "PreviewAny",
+            "pos": [
+              -900,
+              5710
+            ],
+            "size": [
+              300,
+              400
+            ],
+            "flags": {},
+            "order": 11,
+            "mode": 4,
+            "inputs": [
+              {
+                "localized_name": "source",
+                "name": "source",
+                "type": "*",
+                "link": 291
+              }
+            ],
+            "outputs": [
+              {
+                "localized_name": "STRING",
+                "name": "STRING",
+                "type": "STRING",
+                "links": []
+              }
+            ],
+            "properties": {
+              "cnr_id": "comfy-core",
+              "ver": "0.21.0",
+              "Node name for S&R": "PreviewAny",
+              "enableTabs": false,
+              "tabWidth": 65,
+              "tabXOffset": 10,
+              "hasSecondTab": false,
+              "secondTabText": "Send Back",
+              "secondTabOffset": 80,
+              "secondTabWidth": 65
+            },
+            "widgets_values": [
+              null,
+              null,
+              null
+            ]
+          }
+        ],
+        "groups": [
+          {
+            "id": 5,
+            "title": "Prompt Enhancement",
+            "bounding": [
+              -3960,
+              5130,
+              1350,
+              1070
+            ],
+            "color": "#3f789e",
+            "flags": {}
+          }
+        ],
+        "links": [
+          {
+            "id": 243,
+            "origin_id": 165,
+            "origin_slot": 0,
+            "target_id": 166,
+            "target_slot": 0,
+            "type": "STRING"
+          },
+          {
+            "id": 244,
+            "origin_id": 170,
+            "origin_slot": 0,
+            "target_id": 166,
+            "target_slot": 1,
+            "type": "STRING"
+          },
+          {
+            "id": 241,
+            "origin_id": 167,
+            "origin_slot": 0,
+            "target_id": 164,
+            "target_slot": 0,
+            "type": "CLIP"
+          },
+          {
+            "id": 251,
+            "origin_id": 166,
+            "origin_slot": 0,
+            "target_id": 164,
+            "target_slot": 4,
+            "type": "STRING"
+          },
+          {
+            "id": 248,
+            "origin_id": -10,
+            "origin_slot": 0,
+            "target_id": 170,
+            "target_slot": 0,
+            "type": "STRING"
+          },
+          {
+            "id": 263,
+            "origin_id": -10,
+            "origin_slot": 1,
+            "target_id": 167,
+            "target_slot": 0,
+            "type": "COMBO"
+          },
+          {
+            "id": 269,
+            "origin_id": -10,
+            "origin_slot": 2,
+            "target_id": 164,
+            "target_slot": 1,
+            "type": "IMAGE"
+          },
+          {
+            "id": 281,
+            "origin_id": 164,
+            "origin_slot": 0,
+            "target_id": 199,
+            "target_slot": 0,
+            "type": "STRING"
+          },
+          {
+            "id": 285,
+            "origin_id": 199,
+            "origin_slot": 0,
+            "target_id": 201,
+            "target_slot": 0,
+            "type": "STRING"
+          },
+          {
+            "id": 286,
+            "origin_id": 201,
+            "origin_slot": 0,
+            "target_id": 200,
+            "target_slot": 0,
+            "type": "STRING"
+          },
+          {
+            "id": 287,
+            "origin_id": 201,
+            "origin_slot": 0,
+            "target_id": 202,
+            "target_slot": 0,
+            "type": "STRING"
+          },
+          {
+            "id": 288,
+            "origin_id": 202,
+            "origin_slot": 0,
+            "target_id": 198,
+            "target_slot": 0,
+            "type": "STRING"
+          },
+          {
+            "id": 290,
+            "origin_id": 202,
+            "origin_slot": 0,
+            "target_id": 203,
+            "target_slot": 0,
+            "type": "STRING"
+          },
+          {
+            "id": 291,
+            "origin_id": 198,
+            "origin_slot": 0,
+            "target_id": 204,
+            "target_slot": 0,
+            "type": "STRING"
+          },
+          {
+            "id": 292,
+            "origin_id": 198,
+            "origin_slot": 0,
+            "target_id": -20,
+            "target_slot": 0,
+            "type": "STRING"
+          }
+        ],
+        "extra": {}
+      }
+    ]
+  },
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.45000000000001134,
+      "offset": [
+        -909.0793795439515,
+        1165.1750956468104
+      ]
+    },
+    "frontendVersion": "1.43.18",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}
